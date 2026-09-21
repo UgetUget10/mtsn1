@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Build produksi Docker (frontend/Dockerfile) menyalin .next/standalone
+  // sebagai runtime image — tanpa ini, folder itu tidak ter-generate.
+  output: "standalone",
   // API lokal (php artisan serve) bersifat single-thread & lambat (~1-2 dtk/req);
   // prerender paralel bisa menembus batas default 60 dtk. Naikkan agar build stabil.
   staticPageGenerationTimeout: 240,

@@ -17,3 +17,6 @@ backend/storage/backups/
 
 # scheduled task lock (local Claude Code state)
 .claude/scheduled_tasks.lock
+
+# Docker Compose secrets (DB passwords) — root .env, not backend/frontend's
+/.env
