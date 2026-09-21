@@ -1,0 +1,48 @@
+{
+  "common": {
+    "readMore": "Read more",
+    "readAll": "View all",
+    "back": "Back",
+    "backToHome": "Back to Home",
+    "search": "Search",
+    "loading": "Loading…",
+    "openInNewTab": "Open in new tab",
+    "download": "Download",
+    "close": "Close",
+    "menu": "Menu",
+    "skipToContent": "Skip to content",
+    "language": "Language"
+  },
+  "nav": {
+    "home": "Home",
+    "sitemap": "Sitemap",
+    "sitemapAll": "Sitemap — all pages",
+    "ppdbOnline": "Admissions Portal",
+    "infoTerkini": "Latest Updates"
+  },
+  "footer": {
+    "developedWith": "Built with Next.js & Laravel",
+    "allRightsReserved": "All rights reserved.",
+    "contact": "Contact",
+    "infoPPDB": "Admissions Info",
+    "tagline": "Shaping a generation of noble character, achievement, and global outlook."
+  },
+  "notFound": {
+    "title": "Page not found",
+    "description": "Sorry, the page you are looking for is not available or has been moved.",
+    "cta": "Back to Home",
+    "viewNews": "View News"
+  },
+  "error": {
+    "title": "Something went wrong",
+    "description": "Sorry, there was a problem loading this page. Please try again.",
+    "retry": "Try again"
+  },
+  "search": {
+    "placeholder": "Search news, pages, documents…",
+    "recent": "Recent searches",
+    "noResults": "No results for",
+    "hintPages": "Pages",
+    "hintNews": "News"
+  }
+}

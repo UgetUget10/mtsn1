@@ -1,0 +1,33 @@
+{
+  "name": "MTsN 1 Kota Malang",
+  "short_name": "MTsN 1",
+  "description": "Website resmi MTsN 1 Kota Malang — berita, agenda, profil, galeri, dan informasi PPDB.",
+  "start_url": "/?utm_source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#ffffff",
+  "theme_color": "#0f7a4e",
+  "lang": "id-ID",
+  "categories": ["education", "news"],
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    { "name": "Berita", "url": "/berita" },
+    { "name": "Agenda", "url": "/agenda" },
+    { "name": "PPDB", "url": "/ppdb" },
+    { "name": "Kontak", "url": "/kontak" }
+  ]
+}

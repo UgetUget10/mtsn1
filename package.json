@@ -1,0 +1,21 @@
+{
+  "name": "mtsn1",
+  "private": true,
+  "description": "Website MTsN 1 Kota Malang — Laravel + Filament (backend) & Next.js (frontend)",
+  "scripts": {
+    "dev": "concurrently -k -n API,WEB -c blue,green \"npm:dev:api\" \"npm:dev:web\"",
+    "dev:api": "php backend/artisan serve --host=127.0.0.1 --port=8000",
+    "dev:web": "npm --prefix frontend run dev",
+    "start": "concurrently -k -n API,WEB -c blue,green \"npm:dev:api\" \"npm:start:web\"",
+    "start:web": "npm --prefix frontend run start",
+    "build": "npm --prefix frontend run build",
+    "lint": "npm --prefix frontend run lint",
+    "revalidate": "curl -X POST \"http://127.0.0.1:3000/revalidate?secret=mtsn1-local-revalidate\"",
+    "migrate": "php backend/artisan migrate",
+    "seed": "php backend/artisan db:seed",
+    "setup": "npm --prefix frontend install && composer --working-dir=backend install && php backend/artisan migrate --seed"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  }
+}

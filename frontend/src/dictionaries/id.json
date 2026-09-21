@@ -1,0 +1,48 @@
+{
+  "common": {
+    "readMore": "Selengkapnya",
+    "readAll": "Lihat semua",
+    "back": "Kembali",
+    "backToHome": "Kembali ke Beranda",
+    "search": "Cari",
+    "loading": "Memuat…",
+    "openInNewTab": "Buka di tab baru",
+    "download": "Unduh",
+    "close": "Tutup",
+    "menu": "Menu",
+    "skipToContent": "Lewati ke konten",
+    "language": "Bahasa"
+  },
+  "nav": {
+    "home": "Beranda",
+    "sitemap": "Peta Situs",
+    "sitemapAll": "Peta Situs — semua halaman",
+    "ppdbOnline": "PMBM Online",
+    "infoTerkini": "Info Terkini"
+  },
+  "footer": {
+    "developedWith": "Dikembangkan dengan Next.js & Laravel",
+    "allRightsReserved": "Seluruh hak cipta dilindungi.",
+    "contact": "Kontak",
+    "infoPPDB": "Info PMBM",
+    "tagline": "Membentuk generasi berakhlak mulia, berprestasi, dan berwawasan global."
+  },
+  "notFound": {
+    "title": "Halaman tidak ditemukan",
+    "description": "Maaf, halaman yang Anda cari tidak tersedia atau telah dipindahkan.",
+    "cta": "Kembali ke Beranda",
+    "viewNews": "Lihat Berita"
+  },
+  "error": {
+    "title": "Terjadi kesalahan",
+    "description": "Maaf, ada masalah saat memuat halaman ini. Silakan coba lagi.",
+    "retry": "Coba lagi"
+  },
+  "search": {
+    "placeholder": "Cari berita, halaman, dokumen…",
+    "recent": "Pencarian terakhir",
+    "noResults": "Tidak ada hasil untuk",
+    "hintPages": "Halaman",
+    "hintNews": "Berita"
+  }
+}

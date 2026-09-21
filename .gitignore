@@ -1,0 +1,19 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode
+.idea
+
+# dependency locks are kept, but not stray node_modules at root
+/node_modules
+
+# local docs not meant for the repo
+*.docx
+
+# database dumps/backups
+backend/storage/backups/
+*.sql
+*.sql.gz
+
+# scheduled task lock (local Claude Code state)
+.claude/scheduled_tasks.lock
