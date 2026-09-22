@@ -1,4 +1,4 @@
-import Image from "next/image";
+import Image from "@/components/media-image";
 import type { Metadata } from "next";
 import { getGalleries } from "@/lib/api";
 import { Container, EmptyState, PageHeader } from "@/components/ui";
@@ -6,7 +6,7 @@ import { Reveal } from "@/components/motion";
 import { formatDate } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Galeri" };
-export const revalidate = 600;
+export const dynamic = "force-dynamic";
 
 export default async function GaleriPage() {
   const galleries = await getGalleries();

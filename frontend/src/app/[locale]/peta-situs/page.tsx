@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   title: "Peta Situs",
   description: "Daftar lengkap seluruh halaman dan tautan pada situs MTsN 1 Kota Malang.",
 };
-export const revalidate = 600;
+export const dynamic = "force-dynamic";
 
 export default async function PetaSitusPage() {
   const menu = await getMenu("header");

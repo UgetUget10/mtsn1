@@ -43,6 +43,9 @@ const nextConfig: NextConfig = {
       { protocol: "http", hostname: "mtsn1.test" },
       { protocol: "http", hostname: "127.0.0.1", port: "8000" },
       { protocol: "http", hostname: "localhost", port: "8000" },
+      // Target INTERNAL_API_URL (lib/media.ts#toOptimizerSrc) — port 80
+      // default, backend/nginx yang sama dipakai fetch API server-side.
+      { protocol: "http", hostname: "127.0.0.1" },
       { protocol: "https", hostname: "**" },
     ],
   },

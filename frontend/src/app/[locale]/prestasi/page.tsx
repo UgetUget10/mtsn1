@@ -4,7 +4,7 @@ import { Container, EmptyState, PageHeader } from "@/components/ui";
 import { PrestasiExplorer } from "@/components/features-data";
 
 export const metadata: Metadata = { title: "Prestasi" };
-export const revalidate = 600;
+export const dynamic = "force-dynamic";
 
 export default async function PrestasiPage() {
   const achievements = await getAchievements();

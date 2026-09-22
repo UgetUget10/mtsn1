@@ -31,7 +31,13 @@ import type {
 /** Nama cookie tempat /api/preview menyimpan token pratinjau dari backend. */
 export const PREVIEW_TOKEN_COOKIE = "mtsn1_preview_token";
 
-const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000/api/v1";
+// Server-only: hindari fetch server-ke-diri-sendiri lewat domain publik
+// (DNS/HTTPS/firewall di luar kendali kita). INTERNAL_API_URL menunjuk
+// langsung ke backend di mesin yang sama; NEXT_PUBLIC_API_URL tetap dipakai
+// browser (lihat file lain yang membaca env yang sama untuk href/redirect
+// yang memang harus publik).
+const BASE =
+  process.env.INTERNAL_API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000/api/v1";
 
 type Opts = {
   revalidate?: number;
@@ -131,9 +137,9 @@ export const getMenu = (key: string) =>
   );
 /** Isi satu zona widget (ala WordPress Appearance > Widgets) — kosong bila admin belum mengisi apa pun. */
 export const getWidgetArea = (key: string) =>
-  api<WidgetArea>(`/widget-areas/${key}`, { revalidate: 600, tags: ["widget-areas"] }).catch(
-    () => ({ key, blocks: [] }) as WidgetArea,
-  );
+  api<{ data: WidgetArea }>(`/widget-areas/${key}`, { revalidate: 600, tags: ["widget-areas"] })
+    .then((r) => r.data)
+    .catch(() => ({ key, blocks: [] }) as WidgetArea);
 /**
  * Saat Draft Mode aktif (editor menekan "Pratinjau" di admin), ambil versi
  * draft lewat endpoint terpisah backend `/preview/...` yang butuh token
@@ -173,19 +179,29 @@ export const getPost = async (slug: string): Promise<{ data: Post }> => {
     });
   }
 
-  // Post terlindungi kata sandi: kirim token unlock dari cookie (wp: cek
-  // post_password). Bila ada cookie, matikan cache agar isi ter-unlock terlihat
-  // hanya untuk pengunjung ini; tanpa cookie, jalur ISR normal.
-  const jar = await cookies();
-  const unlockToken = jar.get(`mtsn1_unlock_${slug}`)?.value;
-  if (unlockToken) {
-    return api<{ data: Post }>(`/posts/${slug}`, {
-      revalidate: 0,
-      query: { unlock: unlockToken },
-    });
+  // Jalur ISR normal dulu — TANPA menyentuh cookies(), supaya post biasa
+  // (mayoritas) tetap static/di-cache dan tidak memicu error Next "Page
+  // changed from static to dynamic at runtime" (cookies() memaksa route
+  // jadi dynamic, dan itu fatal kalau path-nya sudah ter-prerender statis).
+  const result = await api<{ data: Post }>(`/posts/${slug}`, { revalidate: 120, tags: ["posts"] });
+
+  // Hanya post terlindungi kata sandi & belum ter-unlock yang perlu cek
+  // cookie unlock (wp: post_password) — kasus langka, jadi cookies() hanya
+  // disentuh saat benar-benar perlu, bukan di setiap request.
+  if (!result.data.protected || result.data.unlocked) {
+    return result;
   }
 
-  return api<{ data: Post }>(`/posts/${slug}`, { revalidate: 120, tags: ["posts"] });
+  const jar = await cookies();
+  const unlockToken = jar.get(`mtsn1_unlock_${slug}`)?.value;
+  if (!unlockToken) {
+    return result;
+  }
+
+  return api<{ data: Post }>(`/posts/${slug}`, {
+    revalidate: 0,
+    query: { unlock: unlockToken },
+  });
 };
 
 /** Komentar publik (disetujui) untuk sebuah artikel, sudah berulir. */

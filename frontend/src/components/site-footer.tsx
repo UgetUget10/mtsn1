@@ -1,4 +1,4 @@
-import Image from "next/image";
+import Image from "@/components/media-image";
 import Link from "next/link";
 import type { ApiMenu, Block, Settings } from "@/lib/types";
 import type { Dictionary } from "@/dictionaries";

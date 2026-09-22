@@ -4,7 +4,7 @@ import { Container, EmptyState, PageHeader } from "@/components/ui";
 import { GuruDirectory } from "@/components/features-data";
 
 export const metadata: Metadata = { title: "Guru & Tenaga Kependidikan" };
-export const revalidate = 600;
+export const dynamic = "force-dynamic";
 
 const groupLabels: Record<string, string> = {
   pimpinan: "Pimpinan",

@@ -6,7 +6,7 @@ import { MiniCalendar } from "@/components/features-more";
 import { formatDateTime } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Agenda Kegiatan" };
-export const revalidate = 300;
+export const dynamic = "force-dynamic";
 
 /** Origin backend (tanpa /api/v1) — untuk berkas non-API seperti /agenda.ics. */
 const BACKEND_ORIGIN = (

@@ -1,4 +1,4 @@
-import Image from "next/image";
+import Image from "@/components/media-image";
 import Link from "next/link";
 import { IconTile } from "@/components/ui";
 import type { CardGridBlockData } from "@/lib/types";

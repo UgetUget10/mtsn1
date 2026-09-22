@@ -1,11 +1,11 @@
-import Image from "next/image";
+import Image from "@/components/media-image";
 import type { Metadata } from "next";
 import { getExtracurriculars } from "@/lib/api";
 import { Container, EmptyState, PageHeader } from "@/components/ui";
 import { Reveal } from "@/components/motion";
 
 export const metadata: Metadata = { title: "Ekstrakurikuler" };
-export const revalidate = 600;
+export const dynamic = "force-dynamic";
 
 export default async function EkskulPage() {
   const items = await getExtracurriculars();

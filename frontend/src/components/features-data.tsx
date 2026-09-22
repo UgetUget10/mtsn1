@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import Image from "@/components/media-image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Reveal } from "@/components/motion";
 import type { Achievement, DocumentItem, Teacher } from "@/lib/types";
