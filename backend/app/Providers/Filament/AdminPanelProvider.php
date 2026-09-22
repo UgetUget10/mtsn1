@@ -59,6 +59,30 @@ class AdminPanelProvider extends PanelProvider
                 'primary' => Color::Amber,
             ])
             ->renderHook(
+                PanelsRenderHook::HEAD_START,
+                fn (): Htmlable => new HtmlString(
+                    // CSS cascade layer order HARUS dideklarasikan di sini,
+                    // sebelum stylesheet plugin manapun dimuat. app.css milik
+                    // Filament sendiri tidak pernah mengeluarkan pernyataan
+                    // urutan gabungan ("@layer theme, base, components,
+                    // utilities;") — urutan layer di seluruh dokumen
+                    // ditentukan oleh kemunculan PERTAMA nama layer tsb di
+                    // manapun. filament-jobs-monitor-styles.css (dimuat lebih
+                    // dulu dari app.css) membungkus isinya dalam
+                    // "@layer components{...}", sehingga "components"
+                    // ter-daftar sebagai layer PALING RENDAH prioritasnya —
+                    // lebih rendah dari "base" milik Filament sendiri. Akibatnya
+                    // reset elemen polos di base (mis. button{border-radius:0})
+                    // mengalahkan kelas komponen Filament sendiri (.fi-btn,
+                    // .fi-input, dst) di seluruh panel, membuat tampilan
+                    // berantakan/tidak bergaya meski semua CSS berhasil
+                    // dimuat. Deklarasi kosong ini mengunci urutan yang benar
+                    // lebih awal sebelum plugin manapun sempat mendaftarkan
+                    // layer secara tidak sengaja.
+                    '<style>@layer properties, theme, base, components, utilities;</style>',
+                ),
+            )
+            ->renderHook(
                 PanelsRenderHook::HEAD_END,
                 fn (): Htmlable => new HtmlString(
                     // Rich editor "Isi" (App\Filament\Resources\Posts\Schemas\
