@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   description:
     "Pembangunan Zona Integritas menuju Wilayah Bebas dari Korupsi (WBK) dan Wilayah Birokrasi Bersih dan Melayani (WBBM) di MTsN 1 Kota Malang.",
 };
-export const revalidate = 600;
+export const dynamic = "force-dynamic";
 
 const fallbackBlocks: Block[] = [
   {

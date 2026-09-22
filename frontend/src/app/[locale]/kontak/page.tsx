@@ -4,7 +4,7 @@ import { PageBody, PageHeader, IconTile } from "@/components/ui";
 import { ContactForm } from "./contact-form";
 
 export const metadata: Metadata = { title: "Kontak" };
-export const revalidate = 600;
+export const dynamic = "force-dynamic";
 
 const infoIcons = {
   address: "M12 21s-7-5.2-7-11a7 7 0 1 1 14 0c0 5.8-7 11-7 11zM12 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4z",

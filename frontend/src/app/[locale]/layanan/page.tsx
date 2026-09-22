@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   description:
     "Standar layanan, SOP PTSP, maklumat pelayanan, survei kepuasan, dan kanal pengaduan MTsN 1 Kota Malang.",
 };
-export const revalidate = 600;
+export const dynamic = "force-dynamic";
 
 const fallbackBlocks: Block[] = [
   {

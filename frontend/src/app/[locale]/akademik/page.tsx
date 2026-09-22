@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   description:
     "Kurikulum, proses pembelajaran, penilaian, bimbingan konseling, program unggulan, dan aplikasi digital MTsN 1 Kota Malang.",
 };
-export const revalidate = 600;
+export const dynamic = "force-dynamic";
 
 const fallbackBlocks: Block[] = [
   {

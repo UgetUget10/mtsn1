@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   description:
     "Program ma'had (asrama) putra dan putri MTsN 1 Kota Malang: pembinaan karakter, tahfidz, penguatan ibadah, dan kemandirian.",
 };
-export const revalidate = 600;
+export const dynamic = "force-dynamic";
 
 const keunggulan = [
   {

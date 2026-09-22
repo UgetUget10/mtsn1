@@ -4,7 +4,7 @@ import { PageBody, PageHeader, Stat } from "@/components/ui";
 import { PrintButton } from "@/components/features-profil";
 
 export const metadata: Metadata = { title: "Profil Madrasah" };
-export const revalidate = 600;
+export const dynamic = "force-dynamic";
 
 export default async function ProfilIndex() {
   const [settings, profilPage, visiPage] = await Promise.all([
