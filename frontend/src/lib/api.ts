@@ -31,7 +31,13 @@ import type {
 /** Nama cookie tempat /api/preview menyimpan token pratinjau dari backend. */
 export const PREVIEW_TOKEN_COOKIE = "mtsn1_preview_token";
 
-const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000/api/v1";
+// Server-only: hindari fetch server-ke-diri-sendiri lewat domain publik
+// (DNS/HTTPS/firewall di luar kendali kita). INTERNAL_API_URL menunjuk
+// langsung ke backend di mesin yang sama; NEXT_PUBLIC_API_URL tetap dipakai
+// browser (lihat file lain yang membaca env yang sama untuk href/redirect
+// yang memang harus publik).
+const BASE =
+  process.env.INTERNAL_API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000/api/v1";
 
 type Opts = {
   revalidate?: number;
@@ -131,9 +137,9 @@ export const getMenu = (key: string) =>
   );
 /** Isi satu zona widget (ala WordPress Appearance > Widgets) — kosong bila admin belum mengisi apa pun. */
 export const getWidgetArea = (key: string) =>
-  api<WidgetArea>(`/widget-areas/${key}`, { revalidate: 600, tags: ["widget-areas"] }).catch(
-    () => ({ key, blocks: [] }) as WidgetArea,
-  );
+  api<{ data: WidgetArea }>(`/widget-areas/${key}`, { revalidate: 600, tags: ["widget-areas"] })
+    .then((r) => r.data)
+    .catch(() => ({ key, blocks: [] }) as WidgetArea);
 /**
  * Saat Draft Mode aktif (editor menekan "Pratinjau" di admin), ambil versi
  * draft lewat endpoint terpisah backend `/preview/...` yang butuh token

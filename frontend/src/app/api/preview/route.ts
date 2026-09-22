@@ -4,7 +4,10 @@ import { NextRequest } from "next/server";
 import { PREVIEW_TOKEN_COOKIE } from "@/lib/api";
 import { defaultLocale, isLocale } from "@/lib/i18n";
 
-const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000/api/v1";
+// Server-only route handler — pakai INTERNAL_API_URL bila ada (lihat
+// frontend/src/lib/api.ts untuk alasannya).
+const BASE =
+  process.env.INTERNAL_API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000/api/v1";
 
 /**
  * Titik masuk pratinjau — dibuka di tab baru oleh tombol "Pratinjau" di admin
