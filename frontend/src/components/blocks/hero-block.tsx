@@ -1,4 +1,4 @@
-import Image from "next/image";
+import Image from "@/components/media-image";
 import { Button } from "@/components/ui";
 import type { HeroBlockData } from "@/lib/types";
 

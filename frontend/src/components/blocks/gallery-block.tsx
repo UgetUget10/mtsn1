@@ -1,4 +1,4 @@
-import Image from "next/image";
+import Image from "@/components/media-image";
 import type { GalleryBlockData } from "@/lib/types";
 
 export function GalleryBlockView({ data }: { data: GalleryBlockData }) {

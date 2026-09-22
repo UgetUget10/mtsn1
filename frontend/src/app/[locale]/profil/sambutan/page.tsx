@@ -1,4 +1,4 @@
-import Image from "next/image";
+import Image from "@/components/media-image";
 import type { Metadata } from "next";
 import { getSettings } from "@/lib/api";
 import { PageBody, PageHeader } from "@/components/ui";

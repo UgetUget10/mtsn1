@@ -1,4 +1,4 @@
-import Image from "next/image";
+import Image from "@/components/media-image";
 import Link from "next/link";
 import type { ComponentProps, ReactNode } from "react";
 import type { Post } from "@/lib/types";
