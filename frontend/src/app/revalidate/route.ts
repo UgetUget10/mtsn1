@@ -41,7 +41,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ revalidated: true, mode: "full", now: Date.now() });
   }
 
-  for (const tag of tags) revalidateTag(tag, "max");
+  // { expire: 0 } BUKAN "max" — ini dipanggil dari webhook Laravel (bukan
+  // Server Action), jadi updateTag() tidak tersedia (lihat docs updateTag).
+  // Profile "max" = stale-while-revalidate SATU TAHUN: request berikutnya
+  // tetap disajikan data LAMA sambil regenerasi jalan di background — utk
+  // tag seperti "settings" yang TIDAK punya `paths` pendamping (tak ada
+  // revalidatePath yang memaksa satu halaman fresh), traffic normal nyaris
+  // tidak pernah memicu regenerasi itu, jadi perubahan di panel admin
+  // terasa "tidak pernah muncul". { expire: 0 } membuat tag kedaluwarsa
+  // SEKARANG, sehingga request berikutnya blocking-fetch data baru.
+  for (const tag of tags) revalidateTag(tag, { expire: 0 });
 
   for (const path of paths) {
     const clean = path.startsWith("/") ? path : `/${path}`;
