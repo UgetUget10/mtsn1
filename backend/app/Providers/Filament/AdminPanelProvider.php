@@ -3,6 +3,7 @@
 namespace App\Providers\Filament;
 
 use App\Filament\Pages\Auth\EditProfile;
+use App\Http\Middleware\Filament\UseRequestHostForAssetUrls;
 use App\Filament\Widgets\MadrasahStats;
 use App\Filament\Widgets\NeedsAttention;
 use App\Filament\Widgets\OnboardingChecklist;
@@ -29,13 +30,42 @@ use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
+use Illuminate\Routing\Events\RouteMatched;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\HtmlString;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 class AdminPanelProvider extends PanelProvider
 {
+    /**
+     * Livewire mendaftarkan endpoint update/upload-file-nya SENDIRI (lewat
+     * boot() provider-nya sendiri, urutannya relatif terhadap provider lain
+     * tidak bisa diasumsikan) — di luar grup middleware panel Filament di
+     * bawah (lihat panel()->middleware()). Field gambar di form Filament
+     * (mis. cover berita) dirender ulang lewat endpoint itu setiap kali
+     * komponen Livewire update (termasuk saat wire:navigate antar halaman
+     * admin). Kalau endpoint itu tetap memakai APP_URL (domain publik),
+     * gambar bisa gagal load ketika panel dibuka lewat IP LAN dan domain
+     * publik itu tak ter-resolve dari jaringan pengakses.
+     *
+     * Daripada mengejar route Livewire lewat nama saat boot (rawan meleset
+     * kalau urutan boot provider berubah), pasang lewat event
+     * Route::matched yang selalu jalan tiap request nyata — apa pun urutan
+     * boot-nya.
+     */
+    public function boot(): void
+    {
+        Route::matched(function (RouteMatched $event): void {
+            $name = $event->route->getName();
+
+            if ($name === 'default-livewire.update' || $name === 'livewire.upload-file') {
+                UseRequestHostForAssetUrls::apply($event->request);
+            }
+        });
+    }
+
     public function panel(Panel $panel): Panel
     {
         return $panel
@@ -122,6 +152,7 @@ class AdminPanelProvider extends PanelProvider
                 PendingComments::class,
             ])
             ->middleware([
+                UseRequestHostForAssetUrls::class,
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,
                 StartSession::class,

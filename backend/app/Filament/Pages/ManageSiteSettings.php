@@ -250,6 +250,14 @@ class ManageSiteSettings extends Page
             }
 
             $setting->addMediaFromDisk($path, 'public')
+                // Tanpa ini, addMediaFromDisk() MENGHAPUS file sumber di
+                // storage/app/public/settings/... setelah dipindah ke
+                // koleksi media (storage/app/public/{id}/...). Kolom
+                // `settings.value` (dipakai FileUpload di form ini untuk
+                // preview) tetap menyimpan path sumber tsb — begitu file
+                // itu terhapus, preview logo/foto di form langsung patah
+                // walau data "ada" di database.
+                ->preservingOriginal()
                 ->withCustomProperties(['source_path' => $path])
                 ->usingFileName(Str::random(8).'-'.basename($path))
                 ->toMediaCollection('file');

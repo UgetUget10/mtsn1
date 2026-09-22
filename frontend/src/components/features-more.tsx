@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import Image from "@/components/media-image";
 import type { Testimonial } from "@/lib/types";
 
 /* ============================================================
@@ -46,11 +47,12 @@ export function NewsSlider({ posts }: { posts: SlidePost[] }) {
         >
           <div className="media-fallback absolute inset-0" />
           {p.cover ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
+            <Image
               src={p.cover}
               alt=""
-              className="absolute inset-0 h-full w-full object-cover transition-transform duration-[6000ms] ease-out"
+              fill
+              sizes="(min-width: 1024px) 480px, 100vw"
+              className="object-cover transition-transform duration-[6000ms] ease-out"
               style={{ transform: idx === i ? "scale(1.06)" : "scale(1)" }}
             />
           ) : (
