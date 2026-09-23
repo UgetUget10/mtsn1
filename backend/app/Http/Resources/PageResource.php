@@ -10,6 +10,12 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 class PageResource extends JsonResource
 {
+    /**
+     * true di jalur preview kanvas (App\Http\Controllers\Api\PreviewController)
+     * supaya `tree` ikut dikirim — endpoint publik biasa tidak butuh field ini.
+     */
+    public bool $withTree = false;
+
     public function toArray(Request $request): array
     {
         return [
@@ -36,7 +42,57 @@ class PageResource extends JsonResource
                     'data' => BlockDataResolver::resolve($block['type'], $block['data'] ?? []),
                 ])
                 ->all(),
+            'tree' => $this->when($this->withTree, fn () => $this->resolvedTree()),
         ];
+    }
+
+    /**
+     * Versi resolved dari `visibleTree()` — tiap leaf lewat BlockDataResolver
+     * dan `reusable` diekspansi, sama seperti jalur `blocks` di atas, tapi
+     * menjaga struktur section/column untuk pratinjau kanvas visual.
+     *
+     * @return array{schema: int, tree: array<int, array<string, mixed>>}
+     */
+    private function resolvedTree(): array
+    {
+        $tree = $this->visibleTree();
+
+        $tree['tree'] = collect($tree['tree'])
+            ->map(fn (array $node) => $this->resolveNode($node))
+            ->all();
+
+        return $tree;
+    }
+
+    /**
+     * @param  array<string, mixed>  $node
+     * @return array<string, mixed>
+     */
+    private function resolveNode(array $node): array
+    {
+        if (in_array($node['type'] ?? null, BlockTypes::containers(), true)) {
+            $node['children'] = collect($node['children'] ?? [])
+                ->flatMap(fn (array $child) => in_array($child['type'] ?? null, BlockTypes::containers(), true)
+                    ? [$child]
+                    : $this->expandReusable($child))
+                ->map(fn (array $child) => $this->resolveNode($child))
+                ->all();
+
+            return $node;
+        }
+
+        return $this->resolveLeaf($node);
+    }
+
+    /**
+     * @param  array<string, mixed>  $leaf
+     * @return array<string, mixed>
+     */
+    private function resolveLeaf(array $leaf): array
+    {
+        $leaf['data'] = BlockDataResolver::resolve($leaf['type'], $leaf['data'] ?? []);
+
+        return $leaf;
     }
 
     private function seo(): array

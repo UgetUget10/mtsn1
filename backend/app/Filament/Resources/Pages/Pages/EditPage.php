@@ -31,6 +31,11 @@ class EditPage extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('canvas')
+                ->label('Edit Visual')
+                ->icon('heroicon-o-squares-2x2')
+                ->color('primary')
+                ->url(fn () => static::getResource()::getUrl('canvas', ['record' => $this->getRecord()])),
             Action::make('preview')
                 ->label('Pratinjau')
                 ->icon('heroicon-o-eye')

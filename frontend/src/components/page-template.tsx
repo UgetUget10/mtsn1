@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { PageWithBlocks } from "@/lib/types";
 import { Container, PageHeader } from "@/components/ui";
 import { TableOfContents } from "@/components/features-data";
-import { BlockRenderer } from "@/components/blocks/block-renderer";
+import { BlockRenderer, TreeRenderer } from "@/components/blocks/block-renderer";
 import { formatDate } from "@/lib/format";
 
 /**
@@ -26,6 +26,11 @@ export function PageTemplateRenderer({
   siblingPages?: { slug: string; title: string }[];
 }) {
   const template = page.template ?? "default";
+
+  // Pratinjau kanvas visual (Phase 1) mengirim `tree` (struktur section/kolom)
+  // selain `blocks` datar — jika ada, itulah yang dirender (representasi asli
+  // draf yang sedang disunting), bukan `blocks` yang sudah published.
+  const content = page.tree ? <TreeRenderer tree={page.tree} /> : <BlockRenderer blocks={page.blocks} />;
 
   const updatedNote = page.updated_at ? (
     <p className="mb-6 text-xs font-semibold uppercase tracking-wide text-ink-muted">
@@ -103,7 +108,7 @@ export function PageTemplateRenderer({
   if (template === "landing") {
     return (
       <article>
-        <BlockRenderer blocks={page.blocks} />
+        {content}
         <Container className="section-y">
           {relatedPages}
           {backLink}
@@ -120,7 +125,7 @@ export function PageTemplateRenderer({
         <Container className="section-y">
           <article className="min-w-0">
             {updatedNote}
-            <BlockRenderer blocks={page.blocks} />
+            {content}
             {relatedPages}
             {backLink}
           </article>
@@ -160,7 +165,7 @@ export function PageTemplateRenderer({
           </aside>
           <article className="min-w-0 max-w-3xl">
             {updatedNote}
-            <BlockRenderer blocks={page.blocks} />
+            {content}
             {backLink}
           </article>
         </Container>
@@ -175,7 +180,7 @@ export function PageTemplateRenderer({
       <Container className="grid gap-10 section-y lg:grid-cols-[1fr_15rem] lg:items-start">
         <article className="min-w-0 max-w-3xl">
           {updatedNote}
-          <BlockRenderer blocks={page.blocks} />
+          {content}
           {relatedPages}
           {backLink}
         </article>

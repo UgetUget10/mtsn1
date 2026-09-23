@@ -46,6 +46,15 @@ class BlockTypes
     /** Referensi ke App\Models\ReusableBlock lewat data.slug (wp: Synced Pattern). */
     public const REUSABLE = 'reusable';
 
+    /**
+     * Kontainer struktural kanvas visual (lihat App\Support\Blocks\TreeNormalizer).
+     * Tidak pernah muncul sebagai leaf, tidak disentuh BlockDataResolver — makna
+     * sepenuhnya dari `children` + `style`, bukan `data`.
+     */
+    public const SECTION = 'section';
+
+    public const COLUMN = 'column';
+
     public static function all(): array
     {
         return [
@@ -67,5 +76,11 @@ class BlockTypes
             self::TIMELINE,
             self::REUSABLE,
         ];
+    }
+
+    /** Tipe kontainer kanvas — dipakai TreeNormalizer/frontend untuk membedakan dari widget/leaf. */
+    public static function containers(): array
+    {
+        return [self::SECTION, self::COLUMN];
     }
 }

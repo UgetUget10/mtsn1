@@ -49,7 +49,12 @@ class PreviewController extends Controller
             403,
         );
 
-        return (new PageResource($page))
-            ->additional(['preview' => true, 'is_published' => $page->is_published]);
+        $resource = new PageResource($page);
+        // Sertakan `tree` (struktur section/kolom kanvas visual, lihat
+        // App\Filament\Pages\PageCanvasEditor) hanya di jalur pratinjau —
+        // endpoint publik biasa tidak butuh field ini.
+        $resource->withTree = true;
+
+        return $resource->additional(['preview' => true, 'is_published' => $page->is_published]);
     }
 }

@@ -9,6 +9,7 @@ use App\Models\Gallery;
 use App\Models\Page;
 use App\Models\ReusableBlock;
 use App\Support\Blocks\BlockTypes;
+use Closure;
 use Filament\Forms\Components\Builder;
 use Filament\Forms\Components\Builder\Block;
 use Filament\Forms\Components\FileUpload;
@@ -106,6 +107,272 @@ class PageForm
     }
 
     /**
+     * Skema field per tipe blok — satu sumber kebenaran dipakai builder() di
+     * bawah (dibungkus Block::make()->schema()) DAN App\Filament\Pages\
+     * PageBlockEditor (modal widget kanvas visual, dibuka via iframe dari
+     * canvas-editor/). Closure dipanggil ulang tiap dibutuhkan supaya field
+     * yang dihasilkan selalu instance baru — komponen Filament tidak aman
+     * dipakai ulang lintas container (statenya ter-bind ke satu tempat),
+     * jadi TIDAK bisa diekstrak dari Builder yang sudah dirakit.
+     *
+     * @return array<string, Closure(): array<int, \Filament\Schemas\Components\Component>>
+     */
+    public static function blockFieldFactories(): array
+    {
+        return [
+            BlockTypes::HERO => fn () => [
+                TextInput::make('eyebrow')->label('Label kecil di atas judul'),
+                TextInput::make('title')->label('Judul')->required(),
+                Textarea::make('subtitle')->label('Subjudul')->rows(2),
+                FileUpload::make('image')->label('Gambar latar')->image()->directory('pages/blocks'),
+                TextInput::make('cta_label')->label('Teks tombol'),
+                TextInput::make('cta_href')->label('Tautan tombol')->url(),
+            ],
+
+            BlockTypes::RICH_TEXT => fn () => [
+                TextInput::make('heading')->label('Judul (opsional)'),
+                RichEditor::make('body')->label('Isi')->required()->columnSpanFull(),
+            ],
+
+            BlockTypes::CARD_GRID => fn () => [
+                TextInput::make('heading')->label('Judul (opsional)'),
+                Select::make('columns')
+                    ->label('Jumlah kolom')
+                    ->options([2 => '2', 3 => '3', 4 => '4'])
+                    ->default(2)
+                    ->required(),
+                Repeater::make('cards')
+                    ->label('Kartu')
+                    ->columnSpanFull()
+                    ->schema([
+                        TextInput::make('title')->label('Judul')->required(),
+                        Textarea::make('description')->label('Deskripsi')->rows(2)->columnSpanFull(),
+                        TextInput::make('icon')->label('Ikon (opsional, nama heroicon)'),
+                        FileUpload::make('image')->label('Gambar (opsional)')->image()->directory('pages/blocks'),
+                        TextInput::make('href')->label('Tautan (opsional)')->url(),
+                    ])
+                    ->columns(2)
+                    ->defaultItems(1)
+                    ->addActionLabel('Tambah kartu'),
+            ],
+
+            BlockTypes::ACCORDION => fn () => [
+                TextInput::make('heading')->label('Judul (opsional)'),
+                Repeater::make('items')
+                    ->label('Item')
+                    ->columnSpanFull()
+                    ->schema([
+                        TextInput::make('question')->label('Pertanyaan / judul')->required(),
+                        RichEditor::make('answer')->label('Jawaban / isi')->required(),
+                    ])
+                    ->defaultItems(1)
+                    ->addActionLabel('Tambah item'),
+            ],
+
+            BlockTypes::CTA => fn () => [
+                TextInput::make('heading')->label('Judul')->required(),
+                Textarea::make('text')->label('Teks')->rows(2)->columnSpanFull(),
+                TextInput::make('button_label')->label('Teks tombol')->required(),
+                TextInput::make('button_href')->label('Tautan tombol')->required()->url(),
+                Select::make('style')
+                    ->label('Gaya')
+                    ->options(['primary' => 'Utama (solid)', 'outline' => 'Outline'])
+                    ->default('primary'),
+            ],
+
+            BlockTypes::FILE_LIST => fn () => [
+                TextInput::make('heading')->label('Judul (opsional)'),
+                Repeater::make('files')
+                    ->label('Berkas')
+                    ->columnSpanFull()
+                    ->schema([
+                        Select::make('document_id')
+                            ->label('Dokumen')
+                            ->options(fn () => Document::query()->pluck('title', 'id'))
+                            ->searchable()
+                            ->required(),
+                    ])
+                    ->defaultItems(1)
+                    ->addActionLabel('Tambah berkas'),
+            ],
+
+            BlockTypes::GALLERY_BLOCK => fn () => [
+                TextInput::make('heading')->label('Judul (opsional)'),
+                Select::make('gallery_id')
+                    ->label('Pilih galeri')
+                    ->options(fn () => Gallery::query()->pluck('title', 'id'))
+                    ->searchable()
+                    ->required(),
+            ],
+
+            BlockTypes::STATS => fn () => [
+                Repeater::make('items')
+                    ->label('Angka')
+                    ->columnSpanFull()
+                    ->schema([
+                        TextInput::make('label')->label('Label')->required(),
+                        TextInput::make('value')->label('Nilai')->required(),
+                        TextInput::make('icon')->label('Ikon (opsional, nama heroicon)'),
+                    ])
+                    ->columns(3)
+                    ->defaultItems(1)
+                    ->addActionLabel('Tambah angka'),
+            ],
+
+            BlockTypes::HUB_GRID => fn () => [
+                Toggle::make('numbered')->label('Tampilkan nomor urut')->default(true),
+                Repeater::make('items')
+                    ->label('Tautan')
+                    ->columnSpanFull()
+                    ->schema([
+                        TextInput::make('title')->label('Judul')->required(),
+                        Textarea::make('desc')->label('Deskripsi')->rows(2)->columnSpanFull(),
+                        TextInput::make('href')->label('Tautan')->required(),
+                        TextInput::make('icon')->label('Ikon (opsional, nama heroicon)'),
+                    ])
+                    ->columns(2)
+                    ->defaultItems(1)
+                    ->addActionLabel('Tambah tautan'),
+            ],
+
+            BlockTypes::TABLE => fn () => [
+                TextInput::make('heading')->label('Judul (opsional)'),
+                Repeater::make('columns')
+                    ->label('Kolom')
+                    ->simple(TextInput::make('label')->label('Nama kolom')->required())
+                    ->defaultItems(2)
+                    ->addActionLabel('Tambah kolom'),
+                Repeater::make('rows')
+                    ->label('Baris')
+                    ->columnSpanFull()
+                    ->schema([
+                        Repeater::make('cells')
+                            ->label('Sel')
+                            ->simple(TextInput::make('value')->label('Isi sel')->required())
+                            ->defaultItems(2)
+                            ->addActionLabel('Tambah sel'),
+                    ])
+                    ->defaultItems(1)
+                    ->addActionLabel('Tambah baris'),
+            ],
+
+            BlockTypes::STEPS => fn () => [
+                TextInput::make('heading')->label('Judul (opsional)'),
+                Repeater::make('items')
+                    ->label('Langkah')
+                    ->columnSpanFull()
+                    ->schema([
+                        TextInput::make('title')->label('Judul langkah')->required(),
+                        Textarea::make('description')->label('Deskripsi')->rows(2),
+                    ])
+                    ->defaultItems(1)
+                    ->addActionLabel('Tambah langkah')
+                    ->reorderable(),
+            ],
+
+            BlockTypes::QUOTE => fn () => [
+                RichEditor::make('text')->label('Isi kutipan')->required()->columnSpanFull(),
+                TextInput::make('attribution')->label('Sumber / nama (opsional)'),
+            ],
+
+            BlockTypes::LINK_CARDS => fn () => [
+                TextInput::make('heading')->label('Judul (opsional)'),
+                Repeater::make('items')
+                    ->label('Kartu')
+                    ->columnSpanFull()
+                    ->schema([
+                        TextInput::make('title')->label('Judul')->required(),
+                        Textarea::make('description')->label('Deskripsi')->rows(2)->columnSpanFull(),
+                        TextInput::make('href')->label('Tautan')->required(),
+                        Toggle::make('external')->label('Buka di tab baru'),
+                    ])
+                    ->columns(2)
+                    ->defaultItems(1)
+                    ->addActionLabel('Tambah kartu'),
+            ],
+
+            BlockTypes::CHECKLIST => fn () => [
+                TextInput::make('heading')->label('Judul (opsional)'),
+                Repeater::make('items')
+                    ->label('Item')
+                    ->simple(TextInput::make('text')->label('Teks item')->required())
+                    ->defaultItems(1)
+                    ->addActionLabel('Tambah item'),
+            ],
+
+            BlockTypes::ICON_LIST => fn () => [
+                TextInput::make('heading')->label('Judul (opsional)'),
+                Repeater::make('items')
+                    ->label('Item')
+                    ->simple(TextInput::make('text')->label('Teks item')->required())
+                    ->defaultItems(1)
+                    ->addActionLabel('Tambah item'),
+            ],
+
+            BlockTypes::TIMELINE => fn () => [
+                TextInput::make('heading')->label('Judul (opsional)'),
+                Repeater::make('items')
+                    ->label('Titik waktu')
+                    ->columnSpanFull()
+                    ->schema([
+                        TextInput::make('label')->label('Label waktu (mis. jam atau tahun)')->required(),
+                        TextInput::make('title')->label('Judul (opsional)'),
+                        Textarea::make('description')->label('Deskripsi')->rows(2),
+                    ])
+                    ->columns(3)
+                    ->defaultItems(1)
+                    ->addActionLabel('Tambah titik waktu')
+                    ->reorderable(),
+            ],
+
+            // wp: Synced Pattern / Reusable Block. Isinya di-inline saat
+            // halaman diserialisasi (PageResource::expandReusable()).
+            BlockTypes::REUSABLE => fn () => [
+                Select::make('slug')
+                    ->label('Pilih blok')
+                    ->options(fn () => ReusableBlock::query()
+                        ->where('is_active', true)
+                        ->orderBy('name')
+                        ->pluck('name', 'slug')
+                        ->all())
+                    ->searchable()
+                    ->required()
+                    ->helperText('Isi blok ini disisipkan saat halaman ditampilkan — ubah sekali di menu "Blok Dipakai Ulang", berubah di semua halaman yang memakainya. Blok dipakai-ulang di dalam blok dipakai-ulang tidak ikut disisipkan.'),
+            ],
+        ];
+    }
+
+    /**
+     * Label + ikon + jumlah kolom tampilan per tipe blok — dipakai builder()
+     * di bawah untuk merakit Block::make(). Urutan array ini ikut menentukan
+     * urutan tampil di block picker Filament.
+     *
+     * @return array<string, array{0: string, 1: string, 2: int}>
+     */
+    private static function blockMeta(): array
+    {
+        return [
+            BlockTypes::HERO => ['Hero', 'heroicon-o-photo', 2],
+            BlockTypes::RICH_TEXT => ['Teks Bebas', 'heroicon-o-document-text', 1],
+            BlockTypes::CARD_GRID => ['Grid Kartu', 'heroicon-o-squares-2x2', 2],
+            BlockTypes::ACCORDION => ['Akordion / FAQ', 'heroicon-o-bars-3-bottom-left', 1],
+            BlockTypes::CTA => ['CTA (Ajakan Bertindak)', 'heroicon-o-megaphone', 2],
+            BlockTypes::FILE_LIST => ['Daftar Berkas', 'heroicon-o-paper-clip', 1],
+            BlockTypes::GALLERY_BLOCK => ['Galeri', 'heroicon-o-photo', 2],
+            BlockTypes::STATS => ['Statistik', 'heroicon-o-chart-bar', 1],
+            BlockTypes::HUB_GRID => ['Grid Tautan (Hub)', 'heroicon-o-squares-plus', 1],
+            BlockTypes::TABLE => ['Tabel', 'heroicon-o-table-cells', 1],
+            BlockTypes::STEPS => ['Langkah Bernomor', 'heroicon-o-list-bullet', 1],
+            BlockTypes::QUOTE => ['Kutipan', 'heroicon-o-chat-bubble-left-right', 1],
+            BlockTypes::LINK_CARDS => ['Kartu Tautan', 'heroicon-o-arrow-top-right-on-square', 1],
+            BlockTypes::CHECKLIST => ['Daftar Centang', 'heroicon-o-check-circle', 1],
+            BlockTypes::ICON_LIST => ['Daftar Berikon', 'heroicon-o-list-bullet', 1],
+            BlockTypes::TIMELINE => ['Linimasa', 'heroicon-o-clock', 1],
+            BlockTypes::REUSABLE => ['Blok Dipakai Ulang', 'heroicon-o-rectangle-stack', 1],
+        ];
+    }
+
+    /**
      * Daftar blok konten. Nama state bisa diganti supaya definisi yang sama
      * dipakai ulang oleh ReusableBlockForm (kolomnya bernama `content`,
      * bukan `blocks`) — satu sumber kebenaran untuk kedua form.
@@ -118,294 +385,19 @@ class PageForm
             ->addActionLabel('Tambah blok')
             ->blockPickerColumns(2)
             ->collapsible()
-            ->blocks([
-                Block::make(BlockTypes::HERO)
-                    ->label('Hero')
-                    ->icon('heroicon-o-photo')
-                    ->schema([
-                        TextInput::make('eyebrow')->label('Label kecil di atas judul'),
-                        TextInput::make('title')->label('Judul')->required(),
-                        Textarea::make('subtitle')->label('Subjudul')->rows(2),
-                        FileUpload::make('image')->label('Gambar latar')->image()->directory('pages/blocks'),
-                        TextInput::make('cta_label')->label('Teks tombol'),
-                        TextInput::make('cta_href')->label('Tautan tombol')->url(),
-                    ])
-                    ->columns(2),
+            ->blocks(
+                collect(static::blockFieldFactories())
+                    ->map(function (Closure $fields, string $type) {
+                        [$label, $icon, $columns] = static::blockMeta()[$type];
 
-                Block::make(BlockTypes::RICH_TEXT)
-                    ->label('Teks Bebas')
-                    ->icon('heroicon-o-document-text')
-                    ->schema([
-                        TextInput::make('heading')->label('Judul (opsional)'),
-                        RichEditor::make('body')->label('Isi')->required()->columnSpanFull(),
-                    ])
-                    ->columns(1),
-
-                Block::make(BlockTypes::CARD_GRID)
-                    ->label('Grid Kartu')
-                    ->icon('heroicon-o-squares-2x2')
-                    ->schema([
-                        TextInput::make('heading')->label('Judul (opsional)'),
-                        Select::make('columns')
-                            ->label('Jumlah kolom')
-                            ->options([2 => '2', 3 => '3', 4 => '4'])
-                            ->default(2)
-                            ->required(),
-                        Repeater::make('cards')
-                            ->label('Kartu')
-                            ->columnSpanFull()
-                            ->schema([
-                                TextInput::make('title')->label('Judul')->required(),
-                                Textarea::make('description')->label('Deskripsi')->rows(2)->columnSpanFull(),
-                                TextInput::make('icon')->label('Ikon (opsional, nama heroicon)'),
-                                FileUpload::make('image')->label('Gambar (opsional)')->image()->directory('pages/blocks'),
-                                TextInput::make('href')->label('Tautan (opsional)')->url(),
-                            ])
-                            ->columns(2)
-                            ->defaultItems(1)
-                            ->addActionLabel('Tambah kartu'),
-                    ])
-                    ->columns(2),
-
-                Block::make(BlockTypes::ACCORDION)
-                    ->label('Akordion / FAQ')
-                    ->icon('heroicon-o-bars-3-bottom-left')
-                    ->schema([
-                        TextInput::make('heading')->label('Judul (opsional)'),
-                        Repeater::make('items')
-                            ->label('Item')
-                            ->columnSpanFull()
-                            ->schema([
-                                TextInput::make('question')->label('Pertanyaan / judul')->required(),
-                                RichEditor::make('answer')->label('Jawaban / isi')->required(),
-                            ])
-                            ->defaultItems(1)
-                            ->addActionLabel('Tambah item'),
-                    ])
-                    ->columns(1),
-
-                Block::make(BlockTypes::CTA)
-                    ->label('CTA (Ajakan Bertindak)')
-                    ->icon('heroicon-o-megaphone')
-                    ->schema([
-                        TextInput::make('heading')->label('Judul')->required(),
-                        Textarea::make('text')->label('Teks')->rows(2)->columnSpanFull(),
-                        TextInput::make('button_label')->label('Teks tombol')->required(),
-                        TextInput::make('button_href')->label('Tautan tombol')->required()->url(),
-                        Select::make('style')
-                            ->label('Gaya')
-                            ->options(['primary' => 'Utama (solid)', 'outline' => 'Outline'])
-                            ->default('primary'),
-                    ])
-                    ->columns(2),
-
-                Block::make(BlockTypes::FILE_LIST)
-                    ->label('Daftar Berkas')
-                    ->icon('heroicon-o-paper-clip')
-                    ->schema([
-                        TextInput::make('heading')->label('Judul (opsional)'),
-                        Repeater::make('files')
-                            ->label('Berkas')
-                            ->columnSpanFull()
-                            ->schema([
-                                Select::make('document_id')
-                                    ->label('Dokumen')
-                                    ->options(fn () => Document::query()->pluck('title', 'id'))
-                                    ->searchable()
-                                    ->required(),
-                            ])
-                            ->defaultItems(1)
-                            ->addActionLabel('Tambah berkas'),
-                    ])
-                    ->columns(1),
-
-                Block::make(BlockTypes::GALLERY_BLOCK)
-                    ->label('Galeri')
-                    ->icon('heroicon-o-photo')
-                    ->schema([
-                        TextInput::make('heading')->label('Judul (opsional)'),
-                        Select::make('gallery_id')
-                            ->label('Pilih galeri')
-                            ->options(fn () => Gallery::query()->pluck('title', 'id'))
-                            ->searchable()
-                            ->required(),
-                    ])
-                    ->columns(2),
-
-                Block::make(BlockTypes::STATS)
-                    ->label('Statistik')
-                    ->icon('heroicon-o-chart-bar')
-                    ->schema([
-                        Repeater::make('items')
-                            ->label('Angka')
-                            ->columnSpanFull()
-                            ->schema([
-                                TextInput::make('label')->label('Label')->required(),
-                                TextInput::make('value')->label('Nilai')->required(),
-                                TextInput::make('icon')->label('Ikon (opsional, nama heroicon)'),
-                            ])
-                            ->columns(3)
-                            ->defaultItems(1)
-                            ->addActionLabel('Tambah angka'),
-                    ])
-                    ->columns(1),
-
-                Block::make(BlockTypes::HUB_GRID)
-                    ->label('Grid Tautan (Hub)')
-                    ->icon('heroicon-o-squares-plus')
-                    ->schema([
-                        Toggle::make('numbered')->label('Tampilkan nomor urut')->default(true),
-                        Repeater::make('items')
-                            ->label('Tautan')
-                            ->columnSpanFull()
-                            ->schema([
-                                TextInput::make('title')->label('Judul')->required(),
-                                Textarea::make('desc')->label('Deskripsi')->rows(2)->columnSpanFull(),
-                                TextInput::make('href')->label('Tautan')->required(),
-                                TextInput::make('icon')->label('Ikon (opsional, nama heroicon)'),
-                            ])
-                            ->columns(2)
-                            ->defaultItems(1)
-                            ->addActionLabel('Tambah tautan'),
-                    ])
-                    ->columns(1),
-
-                Block::make(BlockTypes::TABLE)
-                    ->label('Tabel')
-                    ->icon('heroicon-o-table-cells')
-                    ->schema([
-                        TextInput::make('heading')->label('Judul (opsional)'),
-                        Repeater::make('columns')
-                            ->label('Kolom')
-                            ->simple(TextInput::make('label')->label('Nama kolom')->required())
-                            ->defaultItems(2)
-                            ->addActionLabel('Tambah kolom'),
-                        Repeater::make('rows')
-                            ->label('Baris')
-                            ->columnSpanFull()
-                            ->schema([
-                                Repeater::make('cells')
-                                    ->label('Sel')
-                                    ->simple(TextInput::make('value')->label('Isi sel')->required())
-                                    ->defaultItems(2)
-                                    ->addActionLabel('Tambah sel'),
-                            ])
-                            ->defaultItems(1)
-                            ->addActionLabel('Tambah baris'),
-                    ])
-                    ->columns(1),
-
-                Block::make(BlockTypes::STEPS)
-                    ->label('Langkah Bernomor')
-                    ->icon('heroicon-o-list-bullet')
-                    ->schema([
-                        TextInput::make('heading')->label('Judul (opsional)'),
-                        Repeater::make('items')
-                            ->label('Langkah')
-                            ->columnSpanFull()
-                            ->schema([
-                                TextInput::make('title')->label('Judul langkah')->required(),
-                                Textarea::make('description')->label('Deskripsi')->rows(2),
-                            ])
-                            ->defaultItems(1)
-                            ->addActionLabel('Tambah langkah')
-                            ->reorderable(),
-                    ])
-                    ->columns(1),
-
-                Block::make(BlockTypes::QUOTE)
-                    ->label('Kutipan')
-                    ->icon('heroicon-o-chat-bubble-left-right')
-                    ->schema([
-                        RichEditor::make('text')->label('Isi kutipan')->required()->columnSpanFull(),
-                        TextInput::make('attribution')->label('Sumber / nama (opsional)'),
-                    ])
-                    ->columns(1),
-
-                Block::make(BlockTypes::LINK_CARDS)
-                    ->label('Kartu Tautan')
-                    ->icon('heroicon-o-arrow-top-right-on-square')
-                    ->schema([
-                        TextInput::make('heading')->label('Judul (opsional)'),
-                        Repeater::make('items')
-                            ->label('Kartu')
-                            ->columnSpanFull()
-                            ->schema([
-                                TextInput::make('title')->label('Judul')->required(),
-                                Textarea::make('description')->label('Deskripsi')->rows(2)->columnSpanFull(),
-                                TextInput::make('href')->label('Tautan')->required(),
-                                Toggle::make('external')->label('Buka di tab baru'),
-                            ])
-                            ->columns(2)
-                            ->defaultItems(1)
-                            ->addActionLabel('Tambah kartu'),
-                    ])
-                    ->columns(1),
-
-                Block::make(BlockTypes::CHECKLIST)
-                    ->label('Daftar Centang')
-                    ->icon('heroicon-o-check-circle')
-                    ->schema([
-                        TextInput::make('heading')->label('Judul (opsional)'),
-                        Repeater::make('items')
-                            ->label('Item')
-                            ->simple(TextInput::make('text')->label('Teks item')->required())
-                            ->defaultItems(1)
-                            ->addActionLabel('Tambah item'),
-                    ])
-                    ->columns(1),
-
-                Block::make(BlockTypes::ICON_LIST)
-                    ->label('Daftar Berikon')
-                    ->icon('heroicon-o-list-bullet')
-                    ->schema([
-                        TextInput::make('heading')->label('Judul (opsional)'),
-                        Repeater::make('items')
-                            ->label('Item')
-                            ->simple(TextInput::make('text')->label('Teks item')->required())
-                            ->defaultItems(1)
-                            ->addActionLabel('Tambah item'),
-                    ])
-                    ->columns(1),
-
-                Block::make(BlockTypes::TIMELINE)
-                    ->label('Linimasa')
-                    ->icon('heroicon-o-clock')
-                    ->schema([
-                        TextInput::make('heading')->label('Judul (opsional)'),
-                        Repeater::make('items')
-                            ->label('Titik waktu')
-                            ->columnSpanFull()
-                            ->schema([
-                                TextInput::make('label')->label('Label waktu (mis. jam atau tahun)')->required(),
-                                TextInput::make('title')->label('Judul (opsional)'),
-                                Textarea::make('description')->label('Deskripsi')->rows(2),
-                            ])
-                            ->columns(3)
-                            ->defaultItems(1)
-                            ->addActionLabel('Tambah titik waktu')
-                            ->reorderable(),
-                    ])
-                    ->columns(1),
-
-                // wp: Synced Pattern / Reusable Block. Isinya di-inline saat
-                // halaman diserialisasi (PageResource::expandReusable()).
-                Block::make(BlockTypes::REUSABLE)
-                    ->label('Blok Dipakai Ulang')
-                    ->icon('heroicon-o-rectangle-stack')
-                    ->schema([
-                        Select::make('slug')
-                            ->label('Pilih blok')
-                            ->options(fn () => ReusableBlock::query()
-                                ->where('is_active', true)
-                                ->orderBy('name')
-                                ->pluck('name', 'slug')
-                                ->all())
-                            ->searchable()
-                            ->required()
-                            ->helperText('Isi blok ini disisipkan saat halaman ditampilkan — ubah sekali di menu "Blok Dipakai Ulang", berubah di semua halaman yang memakainya. Blok dipakai-ulang di dalam blok dipakai-ulang tidak ikut disisipkan.'),
-                    ])
-                    ->columns(1),
-            ]);
+                        return Block::make($type)
+                            ->label($label)
+                            ->icon($icon)
+                            ->schema($fields())
+                            ->columns($columns);
+                    })
+                    ->values()
+                    ->all(),
+            );
     }
 }

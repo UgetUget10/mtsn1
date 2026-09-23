@@ -1,4 +1,6 @@
-import type { Block } from "@/lib/types";
+import type { Block, PageTree, TreeSectionNode } from "@/lib/types";
+import { SectionBlock } from "./section-block";
+import { compileResponsiveCss } from "@/lib/style-engine";
 import { HeroBlock } from "./hero-block";
 import { RichTextBlock } from "./rich-text-block";
 import { CardGridBlock } from "./card-grid-block";
@@ -32,7 +34,39 @@ export function BlockRenderer({ blocks }: { blocks: Block[] }) {
   );
 }
 
-function BlockSwitch({ block }: { block: Block }) {
+/**
+ * Merender halaman lewat struktur tree (section/kolom) kanvas visual, dipakai
+ * hanya di jalur pratinjau (PageWithBlocks.tree, lihat PreviewController).
+ * Halaman publik biasa tetap memakai BlockRenderer di atas (`blocks` datar).
+ *
+ * Style breakpoint selain `base` (md/lg/xl — panel styling Phase 2) tak bisa
+ * lewat inline style={} React (CSS inline tak punya media query), jadi
+ * dikumpulkan di sini jadi SATU blok <style> ber-media-query, di-scope per
+ * node lewat atribut data-node-id (lihat section-block.tsx/column-block.tsx).
+ * SSR sekali per request — tak perlu CSS-in-JS runtime, tetap cache-friendly.
+ */
+export function TreeRenderer({ tree }: { tree: PageTree }) {
+  const responsiveCss = tree.tree.map((section) => collectResponsiveCss(section)).join("\n");
+
+  return (
+    <div className="space-y-10">
+      {responsiveCss && <style dangerouslySetInnerHTML={{ __html: responsiveCss }} />}
+      {tree.tree.map((section) => (
+        <SectionBlock key={section.id} node={section} />
+      ))}
+    </div>
+  );
+}
+
+function collectResponsiveCss(section: TreeSectionNode): string {
+  const rules = [compileResponsiveCss(section.id, section.style)];
+  for (const column of section.children) {
+    rules.push(compileResponsiveCss(column.id, column.style));
+  }
+  return rules.filter(Boolean).join("\n");
+}
+
+export function BlockSwitch({ block }: { block: Block }) {
   switch (block.type) {
     case "hero":
       return <HeroBlock data={block.data} />;
