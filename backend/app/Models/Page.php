@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\Concerns\HasRevisions;
 use App\Models\Concerns\TriggersFrontendRevalidation;
 use App\Support\Blocks\BlockTypes;
+use App\Support\Blocks\TreeNormalizer;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -64,6 +65,7 @@ class Page extends Model
     protected $casts = [
         'is_published' => 'boolean',
         'blocks' => 'array',
+        'blocks_draft' => 'array',
         'meta' => 'array',
     ];
 
@@ -137,5 +139,21 @@ class Page extends Model
             ->filter(fn ($b) => ($b['is_visible'] ?? true) === true)
             ->values()
             ->all();
+    }
+
+    /**
+     * Struktur tree kanvas visual (App\Filament\Pages\PageCanvasEditor), untuk
+     * disunting — draf jika ada, jika tidak dinormalisasi dari `blocks` yang
+     * published (lihat TreeNormalizer). Tidak pernah menulis ke DB di sini.
+     *
+     * @return array{schema: int, tree: array<int, array<string, mixed>>}
+     */
+    public function visibleTree(): array
+    {
+        if (! empty($this->blocks_draft)) {
+            return TreeNormalizer::normalize($this->blocks_draft);
+        }
+
+        return TreeNormalizer::normalize($this->visibleBlocks());
     }
 }

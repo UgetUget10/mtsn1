@@ -371,6 +371,18 @@ export type Block =
   | { type: "icon_list"; data: IconListBlockData }
   | { type: "timeline"; data: TimelineBlockData };
 
+/* ---------- Tree kanvas visual (Page Builder Phase 1, preview-only) ---------- */
+
+/** Nilai gaya per breakpoint — kosakata tertutup, divalidasi backend (StyleResolver, Phase 2). */
+export type TreeNodeStyle = Record<string, Record<string, unknown>>;
+
+export type TreeWidgetNode = { id: string; type: Block["type"]; data: unknown; style?: TreeNodeStyle };
+export type TreeColumnNode = { id: string; type: "column"; style?: TreeNodeStyle; children: TreeWidgetNode[] };
+export type TreeSectionNode = { id: string; type: "section"; style?: TreeNodeStyle; children: TreeColumnNode[] };
+
+/** Kembalian PageResource::resolvedTree() — hanya terisi di jalur pratinjau kanvas. */
+export type PageTree = { schema: number; tree: TreeSectionNode[] };
+
 /* ---------- Widget Area (ala WordPress Appearance > Widgets) ---------- */
 
 /** Isi satu zona widget — daftar blok yang dirender lewat BlockRenderer yang sama dengan halaman biasa. */
@@ -408,6 +420,8 @@ export type PageWithBlocks = {
   seo?: Seo;
   updated_at: string;
   blocks: Block[];
+  /** Hanya terisi di jalur pratinjau kanvas visual (lihat PreviewController). */
+  tree?: PageTree;
   /** Hierarki halaman ala WordPress (Page Attributes → Parent). */
   parent: string | null;
   ancestors: PageRef[];
