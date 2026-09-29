@@ -7,13 +7,14 @@ import {
   useSensors,
 } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy, arrayMove } from "@dnd-kit/sortable";
-import { fetchTree, saveTree, publishTree, discardDraft, config } from "./api";
+import { fetchTree, saveTree, publishTree, discardDraft, saveSectionTemplate, fetchSectionTemplate, config } from "./api";
 import type { NodeStyle, SectionNode, TreeResponse, WidgetNode } from "./types";
 import { SectionCard } from "./components/SectionCard";
 import { WidgetPickerModal } from "./components/WidgetPickerModal";
 import { BlockEditorModal } from "./components/BlockEditorModal";
 import { StylePanel, type StyleTarget } from "./components/StylePanel";
-import { newSection, moveColumn, moveWidget, updateNodeStyle, locate } from "./tree-ops";
+import { TemplatePickerModal } from "./components/TemplatePickerModal";
+import { newSection, moveColumn, moveWidget, updateNodeStyle, locate, isSameStructure, diffStyles } from "./tree-ops";
 
 type SaveStatus = "idle" | "saving" | "saved" | "error";
 
@@ -28,17 +29,34 @@ export function App() {
   const [pickerForColumn, setPickerForColumn] = useState<string | null>(null);
   const [editingNode, setEditingNode] = useState<{ nodeId: string | null; type: string } | null>(null);
   const [selectedStyleNodeId, setSelectedStyleNodeId] = useState<string | null>(null);
+  const [templatePickerOpen, setTemplatePickerOpen] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingTree = useRef<SectionNode[] | null>(null);
   /** true bila `tree` lokal punya perubahan yang belum berhasil ditulis ke server. */
   const dirty = useRef(false);
+  /** Tree persis seperti yang terakhir berhasil disimpan ke server — dipakai persist() untuk diff style-only. */
+  const lastSavedTree = useRef<SectionNode[]>([]);
+  /**
+   * Riwayat undo/redo — snapshot tree SEBELUM tiap perubahan terstruktur
+   * (scheduleSave). Dibatasi HISTORY_LIMIT supaya memori tidak tumbuh tanpa
+   * batas pada sesi kanvas yang lama; hilangnya snapshot tertua tidak
+   * masalah karena tetap ada di riwayat revisi backend (HasRevisions) untuk
+   * pemulihan jangka panjang — ini cuma undo cepat dalam satu sesi edit.
+   */
+  const historyPast = useRef<SectionNode[][]>([]);
+  const historyFuture = useRef<SectionNode[][]>([]);
+  const HISTORY_LIMIT = 50;
+  const [, setHistoryTick] = useState(0); // nilainya tak dibaca — cuma pemicu re-render saat panjang riwayat berubah (tombol enabled/disabled)
 
   const loadTree = useCallback(() => {
     setLoading(true);
     setLoadError(null);
     return fetchTree()
-      .then((res) => setTree(res.tree))
+      .then((res) => {
+        setTree(res.tree);
+        lastSavedTree.current = res.tree;
+      })
       .catch((e) => setLoadError(String(e)))
       .finally(() => setLoading(false));
   }, []);
@@ -50,11 +68,33 @@ export function App() {
   const persist = useCallback(async (next: SectionNode[]) => {
     setSaveStatus("saving");
     setSaveError(null);
+
+    // Hitung SEBELUM saveTree() — bandingkan terhadap tree tersimpan
+    // terakhir, bukan terhadap `tree` state saat ini (bisa beda kalau ada
+    // request lain yang menyusul lebih dulu).
+    const previous = lastSavedTree.current;
+    const structureUnchanged = isSameStructure(previous, next);
+    const styleChanges = structureUnchanged ? diffStyles(previous, next) : [];
+
     try {
       await saveTree(next as unknown as TreeResponse["tree"]);
       dirty.current = false;
+      lastSavedTree.current = next;
       setSaveStatus("saved");
-      iframeRef.current?.contentWindow?.location.reload();
+
+      // Struktur sama & yang berubah cuma style → patch langsung ke preview
+      // (CSS custom property per node, lihat compileBaseStyle di frontend),
+      // tanpa reload iframe. Reload penuh tetap dipakai untuk perubahan
+      // struktural (tambah/hapus/pindah node) karena preview perlu me-render
+      // ulang komponen baru — style-only tidak.
+      if (structureUnchanged && styleChanges.length > 0) {
+        iframeRef.current?.contentWindow?.postMessage(
+          { source: "mtsn1-canvas", type: "patch-style", changes: styleChanges },
+          "*",
+        );
+      } else {
+        iframeRef.current?.contentWindow?.location.reload();
+      }
     } catch (e) {
       // dirty TETAP true — perubahan belum benar-benar tersimpan di server,
       // flushPendingSave() (dipanggil sebelum buka modal widget) harus tahu ini.
@@ -64,8 +104,21 @@ export function App() {
   }, []);
 
   const scheduleSave = useCallback(
-    (next: SectionNode[]) => {
-      setTree(next);
+    (next: SectionNode[], recordHistory = true) => {
+      if (recordHistory) {
+        // Simpan tree SAAT INI (sebelum perubahan) ke riwayat undo — dipanggil
+        // dengan React state closure, jadi pakai functional update supaya
+        // selalu dapat nilai `tree` terbaru, bukan yang ter-capture saat
+        // scheduleSave() didefinisikan.
+        setTree((current) => {
+          historyPast.current = [...historyPast.current, current].slice(-HISTORY_LIMIT);
+          historyFuture.current = []; // aksi baru memutus jalur redo lama
+          setHistoryTick((t) => t + 1);
+          return next;
+        });
+      } else {
+        setTree(next);
+      }
       pendingTree.current = next;
       dirty.current = true;
       if (saveTimer.current) clearTimeout(saveTimer.current);
@@ -78,6 +131,22 @@ export function App() {
 
   function retrySave() {
     if (pendingTree.current) void persist(pendingTree.current);
+  }
+
+  function undo() {
+    const previous = historyPast.current.pop();
+    if (!previous) return;
+    setHistoryTick((t) => t + 1);
+    historyFuture.current = [...historyFuture.current, tree];
+    scheduleSave(previous, false);
+  }
+
+  function redo() {
+    const next = historyFuture.current.pop();
+    if (!next) return;
+    setHistoryTick((t) => t + 1);
+    historyPast.current = [...historyPast.current, tree];
+    scheduleSave(next, false);
   }
 
   /**
@@ -143,6 +212,11 @@ export function App() {
     try {
       const res = await discardDraft();
       setTree(res.tree);
+      lastSavedTree.current = res.tree;
+      dirty.current = false;
+      historyPast.current = [];
+      historyFuture.current = [];
+      setHistoryTick((t) => t + 1);
       iframeRef.current?.contentWindow?.location.reload();
     } catch (e) {
       setSaveError(String(e));
@@ -154,16 +228,61 @@ export function App() {
   // supaya kanvas React ikut ter-update, lalu refresh preview.
   useEffect(() => {
     function onMessage(e: MessageEvent) {
-      if (e.data?.source !== "mtsn1-canvas") return;
-      if (e.data.type === "block-saved") {
+      if (e.data?.source === "mtsn1-canvas" && e.data?.type === "block-saved") {
         setEditingNode(null);
-        fetchTree().then((res) => setTree(res.tree));
+        fetchTree().then((res) => {
+          setTree(res.tree);
+          lastSavedTree.current = res.tree;
+        });
         iframeRef.current?.contentWindow?.location.reload();
+        return;
+      }
+
+      // Klik langsung di preview (canvas-selection-bridge.tsx, frontend/) —
+      // pilih node yang sama seolah tombol 🎨 di panel kiri yang diklik,
+      // supaya bisa "klik apa yang dilihat" ala Elementor, bukan cuma lewat
+      // tombol di kanvas kiri.
+      if (e.data?.source === "mtsn1-preview" && e.data?.type === "node-clicked") {
+        const nodeId = e.data.nodeId as string;
+        const loc = locate(tree, nodeId);
+        if (loc) setSelectedStyleNodeId((current) => (current === nodeId ? null : nodeId));
       }
     }
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
-  }, []);
+  }, [tree]);
+
+  // Beri tahu preview node mana yang sedang dipilih, supaya ada highlight di
+  // sana juga (bukan cuma di panel kiri) — arah sebaliknya dari efek di atas.
+  useEffect(() => {
+    iframeRef.current?.contentWindow?.postMessage(
+      { source: "mtsn1-canvas", type: "highlight-node", nodeId: selectedStyleNodeId },
+      "*",
+    );
+  }, [selectedStyleNodeId]);
+
+  // Ctrl/Cmd+Z untuk undo, Ctrl/Cmd+Shift+Z atau Ctrl+Y untuk redo — hanya
+  // saat fokus bukan sedang di input teks (supaya tidak bentrok dengan undo
+  // bawaan browser di dalam field), dan bukan sedang ada modal terbuka
+  // (widget picker/editor/template punya undo teks sendiri).
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || (e.target as HTMLElement)?.isContentEditable) return;
+      if (!(e.ctrlKey || e.metaKey)) return;
+
+      if (e.key.toLowerCase() === "z" && !e.shiftKey) {
+        e.preventDefault();
+        undo();
+      } else if ((e.key.toLowerCase() === "z" && e.shiftKey) || e.key.toLowerCase() === "y") {
+        e.preventDefault();
+        redo();
+      }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- undo/redo membaca ref + tree lewat closure; didaftarkan ulang tiap render lewat dependency tree di bawah
+  }, [tree]);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
 
@@ -232,6 +351,27 @@ export function App() {
     scheduleSave([...tree, newSection()]);
   }
 
+  async function saveSectionAsTemplate(section: SectionNode) {
+    const name = window.prompt("Nama template untuk section ini:");
+    if (!name?.trim()) return;
+    try {
+      await saveSectionTemplate(name.trim(), section);
+      window.alert(`Template "${name.trim()}" tersimpan.`);
+    } catch (e) {
+      setSaveError(String(e));
+    }
+  }
+
+  async function insertFromTemplate(slug: string) {
+    setTemplatePickerOpen(false);
+    try {
+      const res = await fetchSectionTemplate(slug);
+      scheduleSave([...tree, res.section]);
+    } catch (e) {
+      setSaveError(String(e));
+    }
+  }
+
   function updateSection(updated: SectionNode) {
     scheduleSave(tree.map((s) => (s.id === updated.id ? updated : s)));
   }
@@ -263,7 +403,7 @@ export function App() {
     setEditingNode({ nodeId: node.id, type: node.type });
   }
 
-  function selectStyle(kind: "section" | "column", nodeId: string) {
+  function selectStyle(kind: "section" | "column" | "widget", nodeId: string) {
     setSelectedStyleNodeId((current) => (current === nodeId ? null : nodeId));
   }
 
@@ -274,9 +414,13 @@ export function App() {
   const styleTarget: StyleTarget | null = (() => {
     if (!selectedStyleNodeId) return null;
     const loc = locate(tree, selectedStyleNodeId);
-    if (!loc || loc.kind === "widget") return null;
+    if (!loc) return null;
     const node =
-      loc.kind === "section" ? tree[loc.sectionIndex] : tree[loc.sectionIndex].children[loc.columnIndex];
+      loc.kind === "section"
+        ? tree[loc.sectionIndex]
+        : loc.kind === "column"
+          ? tree[loc.sectionIndex].children[loc.columnIndex]
+          : tree[loc.sectionIndex].children[loc.columnIndex].children[loc.widgetIndex];
     return { kind: loc.kind, nodeId: selectedStyleNodeId, style: node.style };
   })();
 
@@ -298,6 +442,27 @@ export function App() {
         <div className="canvas-toolbar">
           <button type="button" onClick={addSection} className="canvas-btn-primary">
             + Tambah Section
+          </button>
+          <button type="button" onClick={() => setTemplatePickerOpen(true)} className="canvas-btn-ghost">
+            📄 Dari Template
+          </button>
+          <button
+            type="button"
+            onClick={undo}
+            disabled={historyPast.current.length === 0}
+            title="Urungkan (Ctrl+Z)"
+            className="canvas-btn-ghost"
+          >
+            ↶ Urungkan
+          </button>
+          <button
+            type="button"
+            onClick={redo}
+            disabled={historyFuture.current.length === 0}
+            title="Ulangi (Ctrl+Shift+Z)"
+            className="canvas-btn-ghost"
+          >
+            ↷ Ulangi
           </button>
           <button
             type="button"
@@ -342,6 +507,7 @@ export function App() {
                   onEditWidget={editWidget}
                   onSelectStyle={selectStyle}
                   selectedNodeId={selectedStyleNodeId}
+                  onSaveAsTemplate={saveSectionAsTemplate}
                 />
               ))}
               {tree.length === 0 && (
@@ -369,6 +535,10 @@ export function App() {
           onClose={() => setPickerForColumn(null)}
           onPick={pickWidgetType}
         />
+      )}
+
+      {templatePickerOpen && (
+        <TemplatePickerModal onClose={() => setTemplatePickerOpen(false)} onPick={insertFromTemplate} />
       )}
 
       {editingNode && (

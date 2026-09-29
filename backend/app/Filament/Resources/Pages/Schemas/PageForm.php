@@ -325,6 +325,61 @@ class PageForm
                     ->reorderable(),
             ],
 
+            BlockTypes::SPACER => fn () => [
+                Select::make('height')
+                    ->label('Tinggi jarak')
+                    ->options(['sm' => 'Kecil', 'md' => 'Sedang', 'lg' => 'Besar', 'xl' => 'Sangat besar'])
+                    ->default('md')
+                    ->required(),
+            ],
+
+            BlockTypes::DIVIDER => fn () => [
+                Select::make('style')
+                    ->label('Gaya garis')
+                    ->options(['solid' => 'Solid', 'dashed' => 'Putus-putus', 'dotted' => 'Titik-titik'])
+                    ->default('solid'),
+                TextInput::make('label')->label('Teks di tengah garis (opsional)'),
+            ],
+
+            BlockTypes::VIDEO => fn () => [
+                TextInput::make('url')
+                    ->label('URL video (YouTube/Vimeo, atau tautan file .mp4)')
+                    ->required()
+                    ->url(),
+                FileUpload::make('poster')->label('Gambar sampul (opsional)')->image()->directory('pages/blocks'),
+            ],
+
+            BlockTypes::ICON_BOX => fn () => [
+                TextInput::make('icon')->label('Ikon (opsional, nama heroicon)')->required(),
+                TextInput::make('title')->label('Judul')->required(),
+                Textarea::make('description')->label('Deskripsi')->rows(2),
+                TextInput::make('href')->label('Tautan (opsional)')->url(),
+                Select::make('layout')
+                    ->label('Tata letak')
+                    ->options(['stacked' => 'Ikon di atas', 'inline' => 'Ikon di samping'])
+                    ->default('stacked'),
+            ],
+
+            BlockTypes::COUNTER => fn () => [
+                TextInput::make('value')->label('Angka akhir')->required()->numeric(),
+                TextInput::make('label')->label('Label')->required(),
+                TextInput::make('prefix')->label('Awalan (mis. "Rp", "+")'),
+                TextInput::make('suffix')->label('Akhiran (mis. "%", "+")'),
+            ],
+
+            BlockTypes::TABS => fn () => [
+                Repeater::make('items')
+                    ->label('Tab')
+                    ->columnSpanFull()
+                    ->schema([
+                        TextInput::make('title')->label('Judul tab')->required(),
+                        RichEditor::make('content')->label('Isi')->required(),
+                    ])
+                    ->defaultItems(2)
+                    ->addActionLabel('Tambah tab')
+                    ->reorderable(),
+            ],
+
             // wp: Synced Pattern / Reusable Block. Isinya di-inline saat
             // halaman diserialisasi (PageResource::expandReusable()).
             BlockTypes::REUSABLE => fn () => [
@@ -369,6 +424,12 @@ class PageForm
             BlockTypes::ICON_LIST => ['Daftar Berikon', 'heroicon-o-list-bullet', 1],
             BlockTypes::TIMELINE => ['Linimasa', 'heroicon-o-clock', 1],
             BlockTypes::REUSABLE => ['Blok Dipakai Ulang', 'heroicon-o-rectangle-stack', 1],
+            BlockTypes::SPACER => ['Spacer (Jarak)', 'heroicon-o-arrows-up-down', 1],
+            BlockTypes::DIVIDER => ['Garis Pemisah', 'heroicon-o-minus', 1],
+            BlockTypes::VIDEO => ['Video', 'heroicon-o-play-circle', 1],
+            BlockTypes::ICON_BOX => ['Kotak Ikon', 'heroicon-o-squares-2x2', 2],
+            BlockTypes::COUNTER => ['Penghitung Angka', 'heroicon-o-calculator', 2],
+            BlockTypes::TABS => ['Tab', 'heroicon-o-rectangle-group', 1],
         ];
     }
 

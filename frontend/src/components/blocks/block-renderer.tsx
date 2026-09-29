@@ -1,6 +1,7 @@
 import type { Block, PageTree, TreeSectionNode } from "@/lib/types";
 import { SectionBlock } from "./section-block";
 import { compileResponsiveCss } from "@/lib/style-engine";
+import { CanvasSelectionBridge } from "./canvas-selection-bridge";
 import { HeroBlock } from "./hero-block";
 import { RichTextBlock } from "./rich-text-block";
 import { CardGridBlock } from "./card-grid-block";
@@ -17,6 +18,12 @@ import { LinkCardsBlock } from "./link-cards-block";
 import { ChecklistBlock } from "./checklist-block";
 import { IconListBlock } from "./icon-list-block";
 import { TimelineBlock } from "./timeline-block";
+import { SpacerBlock } from "./spacer-block";
+import { DividerBlock } from "./divider-block";
+import { VideoBlock } from "./video-block";
+import { IconBoxBlock } from "./icon-box-block";
+import { CounterBlock } from "./counter-block";
+import { TabsBlock } from "./tabs-block";
 
 /**
  * Render satu daftar block (dari Page/Homepage) menjadi UI, block demi
@@ -50,6 +57,7 @@ export function TreeRenderer({ tree }: { tree: PageTree }) {
 
   return (
     <div className="space-y-10">
+      <CanvasSelectionBridge />
       {responsiveCss && <style dangerouslySetInnerHTML={{ __html: responsiveCss }} />}
       {tree.tree.map((section) => (
         <SectionBlock key={section.id} node={section} />
@@ -62,6 +70,9 @@ function collectResponsiveCss(section: TreeSectionNode): string {
   const rules = [compileResponsiveCss(section.id, section.style)];
   for (const column of section.children) {
     rules.push(compileResponsiveCss(column.id, column.style));
+    for (const widget of column.children) {
+      rules.push(compileResponsiveCss(widget.id, widget.style));
+    }
   }
   return rules.filter(Boolean).join("\n");
 }
@@ -100,6 +111,18 @@ export function BlockSwitch({ block }: { block: Block }) {
       return <IconListBlock data={block.data} />;
     case "timeline":
       return <TimelineBlock data={block.data} />;
+    case "spacer":
+      return <SpacerBlock data={block.data} />;
+    case "divider":
+      return <DividerBlock data={block.data} />;
+    case "video":
+      return <VideoBlock data={block.data} />;
+    case "icon_box":
+      return <IconBoxBlock data={block.data} />;
+    case "counter":
+      return <CounterBlock data={block.data} />;
+    case "tabs":
+      return <TabsBlock data={block.data} />;
     default:
       return null;
   }

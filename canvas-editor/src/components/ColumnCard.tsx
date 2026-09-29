@@ -39,7 +39,7 @@ export function ColumnCard({
   onRemove: () => void;
   onAddWidget: () => void;
   onEditWidget: (node: WidgetNode) => void;
-  onSelectStyle: (kind: "section" | "column", nodeId: string) => void;
+  onSelectStyle: (kind: "section" | "column" | "widget", nodeId: string) => void;
   selectedNodeId: string | null;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -152,6 +152,8 @@ export function ColumnCard({
               columnId={column.id}
               onEdit={() => onEditWidget(w)}
               onRemove={() => removeWidget(w.id)}
+              onSelectStyle={onSelectStyle}
+              isStyleSelected={selectedNodeId === w.id}
             />
           ))}
           {column.children.length === 0 && <EmptyColumnDropZone columnId={column.id} />}

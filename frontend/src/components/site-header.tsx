@@ -146,25 +146,38 @@ export function SiteHeader({
     };
   }, [openMenu]);
 
-  const Logo = (
+  const renderLogo = (large = false) => (
     <Link href="/" className="flex min-w-0 items-center gap-2.5" aria-label={name}>
-      <span className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-xl bg-brand text-on-brand ring-1 ring-black/5">
+      <span
+        className={`grid shrink-0 place-items-center overflow-hidden rounded-xl bg-brand text-on-brand ring-1 ring-black/5 ${
+          large ? "h-12 w-12" : "h-10 w-10"
+        }`}
+      >
         {settings.logo ? (
-          <Image src={settings.logo} alt="" width={40} height={40} className="h-full w-full object-cover" />
+          <Image src={settings.logo} alt="" width={48} height={48} className="h-full w-full object-cover" />
         ) : (
-          <span className="text-sm font-black">M1</span>
+          <span className={large ? "text-base font-black" : "text-sm font-black"}>M1</span>
         )}
       </span>
       <span className="min-w-0 leading-tight">
-        <span className="block truncate text-[0.9rem] font-extrabold tracking-tight text-foreground sm:text-[0.95rem]">
+        <span
+          className={`block truncate font-extrabold tracking-tight text-foreground ${
+            large ? "text-base" : "text-[0.9rem] sm:text-[0.95rem]"
+          }`}
+        >
           {name}
         </span>
-        <span className="hidden truncate text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-ink-muted sm:block">
+        <span
+          className={`truncate font-semibold uppercase tracking-[0.16em] text-ink-muted ${
+            large ? "block text-xs" : "hidden text-[0.7rem] sm:block"
+          }`}
+        >
           Madrasah Tsanawiyah Negeri
         </span>
       </span>
     </Link>
   );
+  const Logo = renderLogo();
 
   const utilityLinks = [
     { label: "SP4N-LAPOR!", href: LAPOR_URL },
@@ -223,11 +236,13 @@ export function SiteHeader({
         </div>
       </div>
 
-      <header
-        data-site-header
-        data-scrolled={scrolled}
-        className="sticky top-0 z-40 border-b border-border bg-surface/95 backdrop-blur-md supports-[backdrop-filter]:bg-surface/80"
-      >
+      <header data-site-header data-scrolled={scrolled} className="sticky top-0 z-40">
+        {/* backdrop-blur diletakkan di wrapper ini (bukan di <header>) karena
+            backdrop-filter membuat elemen menjadi containing block bagi
+            descendant position:fixed — kalau dipasang di <header>, drawer
+            mobile (fixed inset-y-0) di bawah akan ikut terkurung setinggi
+            wrapper ini (h-16) alih-alih membentang penuh viewport. */}
+        <div className="border-b border-border bg-surface/95 backdrop-blur-md supports-backdrop-filter:bg-surface/80">
         <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between gap-3 px-4 sm:gap-4 sm:px-6 lg:px-8">
           {Logo}
 
@@ -423,6 +438,7 @@ export function SiteHeader({
             </button>
           </div>
         </div>
+        </div>
 
         {/* ---- Mobile drawer ---- */}
         <div className={`lg:hidden ${drawer ? "pointer-events-auto" : "pointer-events-none"}`}>
@@ -431,23 +447,23 @@ export function SiteHeader({
             onClick={() => setDrawer(false)}
           />
           <div
-            className={`fixed inset-y-0 right-0 z-40 flex w-[88%] max-w-sm flex-col overflow-y-auto rounded-l-2xl border-l border-border bg-surface p-4 shadow-2xl transition-transform duration-300 ${drawer ? "translate-x-0" : "translate-x-full"}`}
+            className={`fixed inset-y-0 right-0 z-40 flex w-[92%] max-w-md flex-col overflow-y-auto rounded-l-2xl border-l border-border bg-surface p-5 shadow-2xl transition-transform duration-300 ${drawer ? "translate-x-0" : "translate-x-full"}`}
           >
-            <div className="mb-4 flex items-center justify-between gap-3 border-b border-border pb-4">
-              {Logo}
-              <div className="flex items-center gap-2">
-                <LanguageSwitcher />
-                <ThemeToggle />
+            <div className="mb-5 flex items-center justify-between gap-3 border-b border-border pb-4">
+              {renderLogo(true)}
+              <div className="flex shrink-0 items-center gap-2">
+                <LanguageSwitcher className="[&_a]:px-3 [&_a]:py-1.5 [&_a]:text-sm" />
+                <ThemeToggle className="h-11 w-11" />
               </div>
             </div>
-            <div className="mb-3">
+            <div className="mb-4">
               <SiteSearch variant="block" />
             </div>
-            <nav className="flex flex-col gap-0.5">
+            <nav className="flex flex-col gap-1">
               {nav.map((entry) => {
                 if (!isNavGroup(entry)) {
                   const ext = entry.href.startsWith("http");
-                  const cls = `flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-semibold transition ${
+                  const cls = `flex items-center gap-2.5 rounded-lg px-3.5 py-3 text-[0.95rem] font-semibold transition ${
                     !ext && leafActive(entry.href)
                       ? "bg-brand-light text-brand-dark"
                       : "text-ink-soft hover:bg-surface-muted hover:text-foreground"
@@ -471,12 +487,12 @@ export function SiteHeader({
                       type="button"
                       onClick={() => setDrawerGroup(isOpen ? null : entry.label)}
                       aria-expanded={isOpen}
-                      className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-semibold transition ${
+                      className={`flex w-full items-center gap-2.5 rounded-lg px-3.5 py-3 text-[0.95rem] font-semibold transition ${
                         gActive || isOpen ? "bg-brand-light text-brand-dark" : "text-ink-soft hover:bg-surface-muted"
                       }`}
                     >
-                      <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-md transition ${gActive || isOpen ? "bg-brand text-on-brand" : "bg-surface-muted text-ink-muted"}`}>
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                      <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-md transition ${gActive || isOpen ? "bg-brand text-on-brand" : "bg-surface-muted text-ink-muted"}`}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
                           <path d={entry.icon} />
                         </svg>
                       </span>
@@ -486,14 +502,14 @@ export function SiteHeader({
                       </svg>
                     </button>
                     {isOpen && (
-                      <div className="my-1 ml-6 flex flex-col gap-0.5 border-l-2 border-brand-light pl-3">
+                      <div className="my-1 ml-7 flex flex-col gap-1 border-l-2 border-brand-light pl-3">
                         {(entry.sections
                           ? entry.sections
                           : [{ title: "", items: entry.items }]
                         ).map((sec) => (
                           <div key={sec.title || "flat"}>
                             {sec.title && (
-                              <p className="flex items-center gap-1.5 px-3 pb-0.5 pt-2 text-[0.62rem] font-bold uppercase tracking-wider text-ink-muted">
+                              <p className="flex items-center gap-1.5 px-3 pb-1 pt-2.5 text-[0.65rem] font-bold uppercase tracking-wider text-ink-muted">
                                 <span className="h-1 w-1 rounded-full bg-accent" />
                                 {sec.title}
                               </p>
@@ -501,7 +517,7 @@ export function SiteHeader({
                             {sec.items.map((it) => {
                               const ext = it.href.startsWith("http");
                               const sActive = it.href === pathname;
-                              const c = `flex items-center gap-2 rounded-md px-3 py-2 text-[0.85rem] transition ${sActive ? "font-semibold text-brand-dark" : "text-ink-soft hover:bg-surface-muted hover:text-foreground"}`;
+                              const c = `flex items-center gap-2.5 rounded-md px-3 py-2.5 text-[0.88rem] transition ${sActive ? "font-semibold text-brand-dark" : "text-ink-soft hover:bg-surface-muted hover:text-foreground"}`;
                               const inner = (
                                 <>
                                   <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${sActive ? "bg-brand" : "bg-border-strong"}`} />

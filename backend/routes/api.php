@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\AuthorController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\CommentController;
 use App\Http\Controllers\Api\ContactController;
+use App\Http\Controllers\Api\GlobalTemplateController;
 use App\Http\Controllers\Api\MenuController;
 use App\Http\Controllers\Api\MiscController;
 use App\Http\Controllers\Api\NotFoundLogController;
@@ -58,6 +59,10 @@ Route::prefix('v1')->group(function () {
 
         Route::get('menus/{key}', [MenuController::class, 'show']);
         Route::get('widget-areas/{key}', [WidgetAreaController::class, 'show']);
+
+        // Theme Builder (App\Models\GlobalTemplate) — header/footer ala Elementor Pro.
+        Route::get('global-templates/{slot}', [GlobalTemplateController::class, 'show'])
+            ->name('global-templates.show');
 
         Route::get('sliders', [MiscController::class, 'sliders']);
         Route::get('teachers', [MiscController::class, 'teachers']);

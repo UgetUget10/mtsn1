@@ -46,6 +46,20 @@ class BlockTypes
     /** Referensi ke App\Models\ReusableBlock lewat data.slug (wp: Synced Pattern). */
     public const REUSABLE = 'reusable';
 
+    /* ---------- Widget layout dasar (Phase 3 — ala Elementor Pro) ---------- */
+
+    public const SPACER = 'spacer';
+
+    public const DIVIDER = 'divider';
+
+    public const VIDEO = 'video';
+
+    public const ICON_BOX = 'icon_box';
+
+    public const COUNTER = 'counter';
+
+    public const TABS = 'tabs';
+
     /**
      * Kontainer struktural kanvas visual (lihat App\Support\Blocks\TreeNormalizer).
      * Tidak pernah muncul sebagai leaf, tidak disentuh BlockDataResolver — makna
@@ -75,6 +89,12 @@ class BlockTypes
             self::ICON_LIST,
             self::TIMELINE,
             self::REUSABLE,
+            self::SPACER,
+            self::DIVIDER,
+            self::VIDEO,
+            self::ICON_BOX,
+            self::COUNTER,
+            self::TABS,
         ];
     }
 

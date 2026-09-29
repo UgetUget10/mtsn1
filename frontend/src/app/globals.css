@@ -2118,3 +2118,18 @@ span.bg-brand-light {
     transform: none !important;
   }
 }
+
+/* ============================================================
+   Kanvas visual — jembatan seleksi klik-di-preview (Phase 2).
+   Hanya aktif di dalam TreeRenderer, yang hanya dirender saat halaman ini
+   dibuka lewat iframe pratinjau kanvas (lihat canvas-selection-bridge.tsx).
+   ============================================================ */
+[data-node-id] {
+  cursor: pointer;
+  outline-offset: 2px;
+  transition: outline-color 0.1s;
+}
+.mtsn1-preview-selected {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}

@@ -8,11 +8,15 @@ export function WidgetCard({
   columnId,
   onEdit,
   onRemove,
+  onSelectStyle,
+  isStyleSelected,
 }: {
   widget: WidgetNode;
   columnId: string;
   onEdit: () => void;
   onRemove: () => void;
+  onSelectStyle: (kind: "widget", nodeId: string) => void;
+  isStyleSelected: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: widget.id,
@@ -23,11 +27,18 @@ export function WidgetCard({
     <div
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1 }}
-      className="canvas-widget"
+      className={`canvas-widget${isStyleSelected ? " canvas-node-style-selected" : ""}`}
     >
       <span className="canvas-drag-handle" {...attributes} {...listeners}>⠿</span>
       <button type="button" className="canvas-widget-label" onClick={onEdit}>
         {WIDGET_LABELS[widget.type] ?? widget.type}
+      </button>
+      <button
+        type="button"
+        onClick={() => onSelectStyle("widget", widget.id)}
+        className={`canvas-btn-ghost canvas-btn-ghost-sm${isStyleSelected ? " canvas-btn-ghost-active" : ""}`}
+      >
+        🎨
       </button>
       <button type="button" onClick={onRemove} className="canvas-btn-danger">×</button>
     </div>

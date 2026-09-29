@@ -9,7 +9,8 @@ import { AnnouncementBar } from "@/components/features";
 import { FloatingUI } from "@/components/floating-ui";
 import { PwaRegister } from "@/components/pwa-register";
 import { PreviewBanner } from "@/components/preview-banner";
-import { getMenu, getSettings, getWidgetArea } from "@/lib/api";
+import { getGlobalTemplate, getMenu, getSettings, getWidgetArea } from "@/lib/api";
+import { GlobalTemplateSlot } from "@/components/global-template-slot";
 import { locales } from "@/lib/i18n";
 import { getDictionary } from "@/dictionaries";
 
@@ -72,11 +73,13 @@ export async function generateStaticParams() {
 
 export default async function RootLayout({ children, params }: LayoutProps<"/[locale]">) {
   const { locale } = await params;
-  const [settings, menu, dict, footerWidgets] = await Promise.all([
+  const [settings, menu, dict, footerWidgets, headerSlot, footerSlot] = await Promise.all([
     getSettings().catch(() => ({}) as Record<string, string>),
     getMenu("header"),
     getDictionary(),
     getWidgetArea("footer"),
+    getGlobalTemplate("header"),
+    getGlobalTemplate("footer"),
   ]);
 
   return (
@@ -104,12 +107,14 @@ export default async function RootLayout({ children, params }: LayoutProps<"/[lo
         >
           {dict.common.skipToContent}
         </a>
+        <GlobalTemplateSlot template={headerSlot} />
         <SiteHeader settings={settings} menu={menu} dict={dict} />
         <div className="flex min-h-dvh flex-col">
           <main id="konten" className="flex-1">
             {children}
           </main>
           <SiteFooter settings={settings} menu={menu} dict={dict} widgets={footerWidgets.blocks} />
+          <GlobalTemplateSlot template={footerSlot} />
         </div>
         <BackToTop />
         <FloatingUI

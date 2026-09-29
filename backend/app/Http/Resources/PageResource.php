@@ -2,9 +2,8 @@
 
 namespace App\Http\Resources;
 
-use App\Models\ReusableBlock;
 use App\Support\Blocks\BlockDataResolver;
-use App\Support\Blocks\BlockTypes;
+use App\Support\Blocks\TreeResolver;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -36,63 +35,14 @@ class PageResource extends JsonResource
                 ->map(fn ($c) => ['title' => $c->title, 'slug' => $c->slug])
                 ->values(),
             'blocks' => collect($this->visibleBlocks())
-                ->flatMap(fn (array $block) => $this->expandReusable($block))
+                ->flatMap(fn (array $block) => TreeResolver::expandReusable($block))
                 ->map(fn (array $block) => [
                     'type' => $block['type'],
                     'data' => BlockDataResolver::resolve($block['type'], $block['data'] ?? []),
                 ])
                 ->all(),
-            'tree' => $this->when($this->withTree, fn () => $this->resolvedTree()),
+            'tree' => $this->when($this->withTree, fn () => TreeResolver::resolve($this->visibleTree())),
         ];
-    }
-
-    /**
-     * Versi resolved dari `visibleTree()` — tiap leaf lewat BlockDataResolver
-     * dan `reusable` diekspansi, sama seperti jalur `blocks` di atas, tapi
-     * menjaga struktur section/column untuk pratinjau kanvas visual.
-     *
-     * @return array{schema: int, tree: array<int, array<string, mixed>>}
-     */
-    private function resolvedTree(): array
-    {
-        $tree = $this->visibleTree();
-
-        $tree['tree'] = collect($tree['tree'])
-            ->map(fn (array $node) => $this->resolveNode($node))
-            ->all();
-
-        return $tree;
-    }
-
-    /**
-     * @param  array<string, mixed>  $node
-     * @return array<string, mixed>
-     */
-    private function resolveNode(array $node): array
-    {
-        if (in_array($node['type'] ?? null, BlockTypes::containers(), true)) {
-            $node['children'] = collect($node['children'] ?? [])
-                ->flatMap(fn (array $child) => in_array($child['type'] ?? null, BlockTypes::containers(), true)
-                    ? [$child]
-                    : $this->expandReusable($child))
-                ->map(fn (array $child) => $this->resolveNode($child))
-                ->all();
-
-            return $node;
-        }
-
-        return $this->resolveLeaf($node);
-    }
-
-    /**
-     * @param  array<string, mixed>  $leaf
-     * @return array<string, mixed>
-     */
-    private function resolveLeaf(array $leaf): array
-    {
-        $leaf['data'] = BlockDataResolver::resolve($leaf['type'], $leaf['data'] ?? []);
-
-        return $leaf;
     }
 
     private function seo(): array
@@ -107,33 +57,5 @@ class PageResource extends JsonResource
             // Path relatif dari FileUpload → URL absolut.
             'og_image' => BlockDataResolver::fileUrl($meta['og_image'] ?? null),
         ];
-    }
-
-    /**
-     * Ganti block bertipe `reusable` dengan isi ReusableBlock terkait
-     * (wp: Synced Pattern di-inline saat render). Block lain diteruskan apa adanya.
-     *
-     * @return array<int, array<string, mixed>>
-     */
-    private function expandReusable(array $block): array
-    {
-        if (($block['type'] ?? null) !== BlockTypes::REUSABLE) {
-            return [$block];
-        }
-
-        $slug = $block['data']['slug'] ?? null;
-        if (! $slug) {
-            return [];
-        }
-
-        $reusable = ReusableBlock::where('slug', $slug)->where('is_active', true)->first();
-        if (! $reusable) {
-            return [];
-        }
-
-        return collect($reusable->content ?? [])
-            ->filter(fn ($b) => ($b['is_visible'] ?? true) === true)
-            ->values()
-            ->all();
     }
 }

@@ -353,6 +353,31 @@ export type TimelineBlockData = {
   items: { label: string; title: string | null; description: string | null }[];
 };
 
+/* ---------- Widget layout dasar (Phase 3 — ala Elementor Pro) ---------- */
+
+export type SpacerBlockData = { height: "sm" | "md" | "lg" | "xl" };
+
+export type DividerBlockData = { style: "solid" | "dashed" | "dotted"; label: string | null };
+
+export type VideoBlockData = { url: string; poster: string | null };
+
+export type IconBoxBlockData = {
+  icon: string | null;
+  title: string;
+  description: string | null;
+  href: string | null;
+  layout: "stacked" | "inline";
+};
+
+export type CounterBlockData = {
+  value: number;
+  label: string;
+  prefix: string | null;
+  suffix: string | null;
+};
+
+export type TabsBlockData = { items: { title: string; content: string }[] };
+
 export type Block =
   | { type: "hero"; data: HeroBlockData }
   | { type: "rich_text"; data: RichTextBlockData }
@@ -369,7 +394,13 @@ export type Block =
   | { type: "link_cards"; data: LinkCardsBlockData }
   | { type: "checklist"; data: ChecklistBlockData }
   | { type: "icon_list"; data: IconListBlockData }
-  | { type: "timeline"; data: TimelineBlockData };
+  | { type: "timeline"; data: TimelineBlockData }
+  | { type: "spacer"; data: SpacerBlockData }
+  | { type: "divider"; data: DividerBlockData }
+  | { type: "video"; data: VideoBlockData }
+  | { type: "icon_box"; data: IconBoxBlockData }
+  | { type: "counter"; data: CounterBlockData }
+  | { type: "tabs"; data: TabsBlockData };
 
 /* ---------- Tree kanvas visual (Page Builder Phase 1, preview-only) ---------- */
 
@@ -382,6 +413,14 @@ export type TreeSectionNode = { id: string; type: "section"; style?: TreeNodeSty
 
 /** Kembalian PageResource::resolvedTree() — hanya terisi di jalur pratinjau kanvas. */
 export type PageTree = { schema: number; tree: TreeSectionNode[] };
+
+/**
+ * Kembalian GET /global-templates/{slot} (Theme Builder header/footer, App\
+ * Models\GlobalTemplate) — `active=false` berarti slot itu belum pernah
+ * dipublish, `tree.tree` kosong; frontend harus tetap tampil normal (lihat
+ * komponen slot pemanggil).
+ */
+export type GlobalTemplateResponse = { slot: string; active: boolean; tree: PageTree };
 
 /* ---------- Widget Area (ala WordPress Appearance > Widgets) ---------- */
 
