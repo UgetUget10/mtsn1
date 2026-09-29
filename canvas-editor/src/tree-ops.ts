@@ -98,7 +98,7 @@ export function moveWidget(
   return tree;
 }
 
-/** Timpa `style` node ber-id tertentu (section atau column) — dipakai StylePanel. */
+/** Timpa `style` node ber-id tertentu (section, column, atau widget) — dipakai StylePanel. */
 export function updateNodeStyle(tree: SectionNode[], nodeId: string, style: NodeStyle): SectionNode[] {
   const loc = locate(tree, nodeId);
   if (!loc) return tree;
@@ -118,5 +118,65 @@ export function updateNodeStyle(tree: SectionNode[], nodeId: string, style: Node
     return next;
   }
 
-  return tree;
+  const next = tree.map((s) => ({
+    ...s,
+    children: s.children.map((c) => ({ ...c, children: [...c.children] })),
+  }));
+  next[loc.sectionIndex].children[loc.columnIndex].children[loc.widgetIndex] = {
+    ...next[loc.sectionIndex].children[loc.columnIndex].children[loc.widgetIndex],
+    style,
+  };
+  return next;
+}
+
+/**
+ * Bandingkan dua tree: true hanya bila STRUKTURnya identik (jumlah & urutan
+ * section/kolom/widget, id-nya) — beda `style`/`data` di node manapun tetap
+ * dianggap "struktur sama". Dipakai App.tsx untuk memutuskan apakah preview
+ * boleh di-patch langsung (live style update, tanpa reload iframe) atau
+ * harus reload penuh (perubahan struktural: tambah/hapus/pindah node).
+ */
+export function isSameStructure(a: SectionNode[], b: SectionNode[]): boolean {
+  if (a.length !== b.length) return false;
+  for (let s = 0; s < a.length; s++) {
+    if (a[s].id !== b[s].id) return false;
+    if (a[s].children.length !== b[s].children.length) return false;
+    for (let c = 0; c < a[s].children.length; c++) {
+      if (a[s].children[c].id !== b[s].children[c].id) return false;
+      const aw = a[s].children[c].children;
+      const bw = b[s].children[c].children;
+      if (aw.length !== bw.length) return false;
+      for (let w = 0; w < aw.length; w++) {
+        if (aw[w].id !== bw[w].id) return false;
+      }
+    }
+  }
+  return true;
+}
+
+/**
+ * Node id + style baru untuk tiap node yang `style`-nya berubah antara dua
+ * tree BERSTRUKTUR SAMA (panggil isSameStructure() dulu). Dipakai untuk
+ * membangun payload patch style-only ke preview.
+ */
+export function diffStyles(a: SectionNode[], b: SectionNode[]): { nodeId: string; style: NodeStyle | undefined }[] {
+  const changes: { nodeId: string; style: NodeStyle | undefined }[] = [];
+
+  for (let s = 0; s < a.length; s++) {
+    if (JSON.stringify(a[s].style) !== JSON.stringify(b[s].style)) {
+      changes.push({ nodeId: b[s].id, style: b[s].style });
+    }
+    for (let c = 0; c < a[s].children.length; c++) {
+      if (JSON.stringify(a[s].children[c].style) !== JSON.stringify(b[s].children[c].style)) {
+        changes.push({ nodeId: b[s].children[c].id, style: b[s].children[c].style });
+      }
+      for (let w = 0; w < a[s].children[c].children.length; w++) {
+        if (JSON.stringify(a[s].children[c].children[w].style) !== JSON.stringify(b[s].children[c].children[w].style)) {
+          changes.push({ nodeId: b[s].children[c].children[w].id, style: b[s].children[c].children[w].style });
+        }
+      }
+    }
+  }
+
+  return changes;
 }

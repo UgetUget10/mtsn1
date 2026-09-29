@@ -24,14 +24,16 @@ export function SectionCard({
   onEditWidget,
   onSelectStyle,
   selectedNodeId,
+  onSaveAsTemplate,
 }: {
   section: SectionNode;
   onChange: (s: SectionNode) => void;
   onRemove: () => void;
   onAddWidget: (columnId: string) => void;
   onEditWidget: (node: WidgetNode) => void;
-  onSelectStyle: (kind: "section" | "column", nodeId: string) => void;
+  onSelectStyle: (kind: "section" | "column" | "widget", nodeId: string) => void;
   selectedNodeId: string | null;
+  onSaveAsTemplate: (section: SectionNode) => void;
 }) {
   const isStyleSelected = selectedNodeId === section.id;
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -77,6 +79,14 @@ export function SectionCard({
             🎨 Gaya
           </button>
           <button type="button" onClick={addColumn} className="canvas-btn-ghost">+ Kolom</button>
+          <button
+            type="button"
+            onClick={() => onSaveAsTemplate(section)}
+            className="canvas-btn-ghost"
+            title="Simpan section ini sebagai template untuk dipakai di halaman lain"
+          >
+            📄 Simpan Template
+          </button>
           <button type="button" onClick={handleRemove} className="canvas-btn-danger">Hapus</button>
         </div>
       </div>

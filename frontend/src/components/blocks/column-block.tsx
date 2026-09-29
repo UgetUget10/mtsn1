@@ -21,7 +21,9 @@ export function ColumnBlock({ node }: { node: TreeColumnNode }) {
       style={compileBaseStyle(node.style)}
     >
       {node.children.map((widget) => (
-        <BlockSwitch key={widget.id} block={{ type: widget.type, data: widget.data } as Block} />
+        <div key={widget.id} data-node-id={widget.id} style={compileBaseStyle(widget.style)}>
+          <BlockSwitch block={{ type: widget.type, data: widget.data } as Block} />
+        </div>
       ))}
     </div>
   );

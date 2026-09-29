@@ -47,4 +47,10 @@ export const WIDGET_LABELS: Record<string, string> = {
   icon_list: "Daftar Berikon",
   timeline: "Linimasa",
   reusable: "Blok Dipakai Ulang",
+  spacer: "Spacer (Jarak)",
+  divider: "Garis Pemisah",
+  video: "Video",
+  icon_box: "Kotak Ikon",
+  counter: "Penghitung Angka",
+  tabs: "Tab",
 };

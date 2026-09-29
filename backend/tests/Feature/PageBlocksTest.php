@@ -60,6 +60,51 @@ class PageBlocksTest extends TestCase
         $this->assertSame('Kurikulum Merdeka', $page->blocks[0]['data']['cards'][0]['title']);
     }
 
+    public function test_new_layout_widgets_persist_through_filament_builder(): void
+    {
+        $this->actingAsSuperAdmin();
+
+        Livewire::test(CreatePage::class)
+            ->fillForm([
+                'title' => ['id' => 'Widget Baru'],
+                'slug' => 'widget-baru',
+                'is_published' => true,
+                'order' => 0,
+                'blocks' => [
+                    'block-1' => ['type' => 'spacer', 'data' => ['height' => 'lg']],
+                    'block-2' => ['type' => 'divider', 'data' => ['style' => 'dashed', 'label' => 'Atau']],
+                    'block-3' => ['type' => 'video', 'data' => ['url' => 'https://youtu.be/dQw4w9WgXcQ', 'poster' => null]],
+                    'block-4' => ['type' => 'icon_box', 'data' => [
+                        'icon' => 'M12 3l8 4v5c0 5-3.4 8.5-8 9-4.6-.5-8-4-8-9V7l8-4z',
+                        'title' => 'Program Unggulan',
+                        'description' => 'Tahfidz, Olimpiade, Bilingual.',
+                        'href' => null,
+                        'layout' => 'stacked',
+                    ]],
+                    'block-5' => ['type' => 'counter', 'data' => [
+                        'value' => '500', 'label' => 'Siswa Aktif', 'prefix' => null, 'suffix' => '+',
+                    ]],
+                    'block-6' => ['type' => 'tabs', 'data' => [
+                        'items' => [
+                            ['title' => 'Visi', 'content' => '<p>Unggul.</p>'],
+                            ['title' => 'Misi', 'content' => '<p>Berkarakter.</p>'],
+                        ],
+                    ]],
+                ],
+            ])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $page = Page::where('slug', 'widget-baru')->firstOrFail();
+
+        $types = collect($page->blocks)->pluck('type')->all();
+        $this->assertSame(['spacer', 'divider', 'video', 'icon_box', 'counter', 'tabs'], $types);
+        $this->assertSame('lg', $page->blocks[0]['data']['height']);
+        $this->assertSame('https://youtu.be/dQw4w9WgXcQ', $page->blocks[2]['data']['url']);
+        $this->assertSame(500, $page->blocks[4]['data']['value']);
+        $this->assertCount(2, $page->blocks[5]['data']['items']);
+    }
+
     public function test_legacy_body_is_wrapped_as_rich_text_block_when_blocks_empty(): void
     {
         $page = Page::create([

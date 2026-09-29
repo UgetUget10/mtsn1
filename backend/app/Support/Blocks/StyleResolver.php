@@ -33,6 +33,23 @@ class StyleResolver
 
     public const COLUMN_WIDTHS = [3, 4, 6, 8, 9, 12];
 
+    /** Skala spasi 4-sisi (margin/padding per sisi) — rem, selaras skala Tailwind. */
+    public const SPACING_SCALE = ['none', 'xs', 'sm', 'md', 'lg', 'xl', '2xl'];
+
+    public const SPACING_SIDES = ['Top', 'Right', 'Bottom', 'Left'];
+
+    public const FONT_SIZE_SCALE = ['xs', 'sm', 'base', 'lg', 'xl', '2xl', '3xl', '4xl'];
+
+    public const FONT_WEIGHT_VALUES = ['normal', 'medium', 'semibold', 'bold'];
+
+    public const BORDER_STYLE_VALUES = ['none', 'solid', 'dashed', 'dotted'];
+
+    public const BORDER_WIDTH_SCALE = ['none', 'thin', 'medium', 'thick'];
+
+    public const RADIUS_SCALE = ['none', 'sm', 'md', 'lg', 'full'];
+
+    public const SHADOW_SCALE = ['none', 'sm', 'md', 'lg'];
+
     /**
      * Bersihkan `style` satu node: buang breakpoint/key/value yang tak
      * dikenal, kembalikan struktur yang aman disimpan. Node kosong/tanpa
@@ -86,6 +103,47 @@ class StyleResolver
 
         if (isset($props['textAlign']) && in_array($props['textAlign'], self::TEXT_ALIGN_VALUES, true)) {
             $clean['textAlign'] = $props['textAlign'];
+        }
+
+        foreach (['padding', 'margin'] as $box) {
+            foreach (self::SPACING_SIDES as $side) {
+                $key = $box.$side; // paddingTop, marginLeft, dst.
+                if (isset($props[$key]) && in_array($props[$key], self::SPACING_SCALE, true)) {
+                    $clean[$key] = $props[$key];
+                }
+            }
+        }
+
+        if (isset($props['fontSize']) && in_array($props['fontSize'], self::FONT_SIZE_SCALE, true)) {
+            $clean['fontSize'] = $props['fontSize'];
+        }
+
+        if (isset($props['fontWeight']) && in_array($props['fontWeight'], self::FONT_WEIGHT_VALUES, true)) {
+            $clean['fontWeight'] = $props['fontWeight'];
+        }
+
+        if (isset($props['textColor']) && self::isValidColor($props['textColor'])) {
+            $clean['textColor'] = $props['textColor'];
+        }
+
+        if (isset($props['borderStyle']) && in_array($props['borderStyle'], self::BORDER_STYLE_VALUES, true)) {
+            $clean['borderStyle'] = $props['borderStyle'];
+        }
+
+        if (isset($props['borderWidth']) && in_array($props['borderWidth'], self::BORDER_WIDTH_SCALE, true)) {
+            $clean['borderWidth'] = $props['borderWidth'];
+        }
+
+        if (isset($props['borderColor']) && self::isValidColor($props['borderColor'])) {
+            $clean['borderColor'] = $props['borderColor'];
+        }
+
+        if (isset($props['radius']) && in_array($props['radius'], self::RADIUS_SCALE, true)) {
+            $clean['radius'] = $props['radius'];
+        }
+
+        if (isset($props['shadow']) && in_array($props['shadow'], self::SHADOW_SCALE, true)) {
+            $clean['shadow'] = $props['shadow'];
         }
 
         return $clean;

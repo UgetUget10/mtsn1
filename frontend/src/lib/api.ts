@@ -13,6 +13,7 @@ import type {
   DocumentItem,
   Extracurricular,
   Gallery,
+  GlobalTemplateResponse,
   LaravelPage,
   NavPage,
   Paginated,
@@ -140,6 +141,11 @@ export const getWidgetArea = (key: string) =>
   api<{ data: WidgetArea }>(`/widget-areas/${key}`, { revalidate: 600, tags: ["widget-areas"] })
     .then((r) => r.data)
     .catch(() => ({ key, blocks: [] }) as WidgetArea);
+/** Desain header/footer aktif (Theme Builder) — tree kosong bila slot belum pernah dipublish. */
+export const getGlobalTemplate = (slot: string) =>
+  api<GlobalTemplateResponse>(`/global-templates/${slot}`, { revalidate: 600, tags: ["global-templates"] }).catch(
+    () => ({ slot, active: false, tree: { schema: 2, tree: [] } }) as GlobalTemplateResponse,
+  );
 /**
  * Saat Draft Mode aktif (editor menekan "Pratinjau" di admin), ambil versi
  * draft lewat endpoint terpisah backend `/preview/...` yang butuh token

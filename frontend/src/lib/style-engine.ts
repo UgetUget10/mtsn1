@@ -22,6 +22,58 @@ const PADDING_Y_SCALE: Record<string, string> = {
   xl: "4.25rem", // selaras --section-y-lg di globals.css
 };
 
+const SPACING_SCALE: Record<string, string> = {
+  none: "0",
+  xs: "0.5rem",
+  sm: "1rem",
+  md: "1.5rem",
+  lg: "2rem",
+  xl: "3rem",
+  "2xl": "4rem",
+};
+
+const FONT_SIZE_SCALE: Record<string, string> = {
+  xs: "0.75rem",
+  sm: "0.875rem",
+  base: "1rem",
+  lg: "1.125rem",
+  xl: "1.25rem",
+  "2xl": "1.5rem",
+  "3xl": "1.875rem",
+  "4xl": "2.25rem",
+};
+
+const FONT_WEIGHT_SCALE: Record<string, string> = {
+  normal: "400",
+  medium: "500",
+  semibold: "600",
+  bold: "700",
+};
+
+const BORDER_WIDTH_SCALE: Record<string, string> = {
+  none: "0",
+  thin: "1px",
+  medium: "2px",
+  thick: "4px",
+};
+
+const RADIUS_SCALE: Record<string, string> = {
+  none: "0",
+  sm: "0.25rem",
+  md: "0.5rem",
+  lg: "1rem",
+  full: "9999px",
+};
+
+const SHADOW_SCALE: Record<string, string> = {
+  none: "none",
+  sm: "0 1px 2px rgba(0,0,0,0.06)",
+  md: "0 4px 12px rgba(0,0,0,0.10)",
+  lg: "0 12px 32px rgba(0,0,0,0.16)",
+};
+
+const SPACING_SIDES = ["Top", "Right", "Bottom", "Left"] as const;
+
 const BACKGROUND_TOKENS: Record<string, string> = {
   transparent: "transparent",
   surface: "var(--surface)",
@@ -41,6 +93,57 @@ function resolveBackground(value: unknown): string | null {
 
 function resolvePaddingY(value: unknown): string | null {
   return typeof value === "string" && value in PADDING_Y_SCALE ? PADDING_Y_SCALE[value] : null;
+}
+
+function resolveScale(scale: Record<string, string>, value: unknown): string | null {
+  return typeof value === "string" && value in scale ? scale[value] : null;
+}
+
+function resolveColor(value: unknown): string | null {
+  return resolveBackground(value);
+}
+
+/** Ekstrak deklarasi CSS spacing (padding/margin 4-sisi) dari props satu breakpoint. */
+function spacingDecls(props: Record<string, unknown>): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const box of ["padding", "margin"] as const) {
+    for (const side of SPACING_SIDES) {
+      const val = resolveScale(SPACING_SCALE, props[`${box}${side}`]);
+      if (val) out[`${box}${side}`] = val;
+    }
+  }
+  return out;
+}
+
+/** Ekstrak deklarasi CSS typography/border/shadow dari props satu breakpoint. */
+function visualDecls(props: Record<string, unknown>): Record<string, string> {
+  const out: Record<string, string> = {};
+
+  const fontSize = resolveScale(FONT_SIZE_SCALE, props.fontSize);
+  if (fontSize) out.fontSize = fontSize;
+
+  const fontWeight = resolveScale(FONT_WEIGHT_SCALE, props.fontWeight);
+  if (fontWeight) out.fontWeight = fontWeight;
+
+  const textColor = resolveColor(props.textColor);
+  if (textColor) out.color = textColor;
+
+  const borderWidth = resolveScale(BORDER_WIDTH_SCALE, props.borderWidth);
+  const borderStyle = typeof props.borderStyle === "string" ? props.borderStyle : null;
+  const borderColor = resolveColor(props.borderColor);
+  if (borderWidth && borderStyle && borderStyle !== "none") {
+    out.borderWidth = borderWidth;
+    out.borderStyle = borderStyle;
+    out.borderColor = borderColor ?? "currentColor";
+  }
+
+  const radius = resolveScale(RADIUS_SCALE, props.radius);
+  if (radius) out.borderRadius = radius;
+
+  const shadow = resolveScale(SHADOW_SCALE, props.shadow);
+  if (shadow) out.boxShadow = shadow;
+
+  return out;
 }
 
 /**
@@ -64,7 +167,50 @@ export function compileBaseStyle(style: TreeNodeStyle | undefined): React.CSSPro
     out.textAlign = base.textAlign;
   }
 
+  Object.assign(out, spacingDecls(base), visualDecls(base));
+
   return out;
+}
+
+/**
+ * Terapkan compileBaseStyle() langsung ke sebuah elemen DOM — dipakai
+ * canvas-selection-bridge.tsx untuk live-patch style saat autosave kanvas
+ * mendeteksi perubahan style-only (lihat isSameStructure()/diffStyles() di
+ * canvas-editor/src/tree-ops.ts), tanpa reload iframe. Reset dulu ketiga
+ * properti sebelum menerapkan yang baru, supaya menghapus style (mis. klik
+ * "Hapus warna latar") juga langsung terlihat, bukan cuma penambahan.
+ */
+const RESETTABLE_PROPS = [
+  "backgroundColor",
+  "paddingBlock",
+  "textAlign",
+  "paddingTop",
+  "paddingRight",
+  "paddingBottom",
+  "paddingLeft",
+  "marginTop",
+  "marginRight",
+  "marginBottom",
+  "marginLeft",
+  "fontSize",
+  "fontWeight",
+  "color",
+  "borderWidth",
+  "borderStyle",
+  "borderColor",
+  "borderRadius",
+  "boxShadow",
+] as const;
+
+export function applyBaseStyleToElement(el: HTMLElement, style: TreeNodeStyle | undefined): void {
+  for (const prop of RESETTABLE_PROPS) {
+    (el.style as unknown as Record<string, string>)[prop] = "";
+  }
+
+  const compiled = compileBaseStyle(style) as Record<string, string>;
+  for (const [key, value] of Object.entries(compiled)) {
+    (el.style as unknown as Record<string, string>)[key] = value;
+  }
 }
 
 const BREAKPOINT_MIN_WIDTH: Record<string, string> = {
@@ -96,6 +242,11 @@ export function compileResponsiveCss(nodeId: string, style: TreeNodeStyle | unde
     if (py) decls.push(`padding-block:${py}`);
     if (props.textAlign === "left" || props.textAlign === "center" || props.textAlign === "right") {
       decls.push(`text-align:${props.textAlign}`);
+    }
+
+    const kebab = (s: string) => s.replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`);
+    for (const [prop, value] of Object.entries({ ...spacingDecls(props), ...visualDecls(props) })) {
+      decls.push(`${kebab(prop)}:${value}`);
     }
 
     if (decls.length > 0) {

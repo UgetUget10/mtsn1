@@ -1,7 +1,9 @@
 <?php
 
+use App\Http\Controllers\Admin\GlobalTemplateController;
 use App\Http\Controllers\Admin\PageCanvasController;
 use App\Http\Controllers\Admin\PostImportTemplateController;
+use App\Http\Controllers\Admin\SectionTemplateController;
 use App\Http\Controllers\FeedController;
 use App\Http\Middleware\SetApiLocale;
 use Filament\Http\Middleware\Authenticate as FilamentAuthenticate;
@@ -31,6 +33,19 @@ Route::middleware(FilamentAuthenticate::class)->prefix('admin/api')->name('admin
     Route::put('pages/{page}/tree', [PageCanvasController::class, 'update'])->name('pages.tree.update');
     Route::post('pages/{page}/publish', [PageCanvasController::class, 'publish'])->name('pages.publish');
     Route::delete('pages/{page}/draft', [PageCanvasController::class, 'discardDraft'])->name('pages.draft.discard');
+
+    // Template Section (App\Models\SectionTemplate) — "Save as Template" ala
+    // Elementor Pro, lihat App\Http\Controllers\Admin\SectionTemplateController.
+    Route::get('section-templates', [SectionTemplateController::class, 'index'])->name('section-templates.index');
+    Route::post('section-templates', [SectionTemplateController::class, 'store'])->name('section-templates.store');
+    Route::get('section-templates/{sectionTemplate}', [SectionTemplateController::class, 'show'])->name('section-templates.show');
+
+    // Theme Builder (App\Models\GlobalTemplate) — header/footer ala Elementor
+    // Pro, lihat App\Http\Controllers\Admin\GlobalTemplateController.
+    Route::get('global-templates/{globalTemplate}/tree', [GlobalTemplateController::class, 'show'])->name('global-templates.tree.show');
+    Route::put('global-templates/{globalTemplate}/tree', [GlobalTemplateController::class, 'update'])->name('global-templates.tree.update');
+    Route::post('global-templates/{globalTemplate}/publish', [GlobalTemplateController::class, 'publish'])->name('global-templates.publish');
+    Route::delete('global-templates/{globalTemplate}/draft', [GlobalTemplateController::class, 'discardDraft'])->name('global-templates.draft.discard');
 });
 
 // Endpoint kompatibilitas ala WordPress. SetApiLocale supaya `?locale=en`
